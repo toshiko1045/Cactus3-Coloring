@@ -762,7 +762,8 @@
                     //子供を訪問 親には訪問しない
                     console.log("未訪問かつ親じゃないかつパスに含まれないね");
                     connectedDfs(node.id, graph, nodeId, visitNum+1, nodesInCycle);
-                } else if(searchPathStack.includes(node.id) //ゴールである 
+                } else if(searchPathStack.includes(node.id)
+                    && node.id!=nodesInCycle[0] //ゴールである 
                     && node.id!=beforeNodeId) { //親ノードではない
                         console.log("ゴールではなく親ではないね");
                         console.log("やぁ",node.id,nodesInCycle[1],beforeNodeId)
