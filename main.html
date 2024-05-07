@@ -1,0 +1,1096 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Color the cactus graph with three colors</title>
+<style>
+    html{
+        height: 100%;
+        width: 100%;
+    }
+    body {
+        width: 100%;
+        height: 100%;
+    }
+    canvas {
+        border: 1px solid #000;
+        cursor: default;
+    }
+</style>
+</head>
+<body>
+<canvas id="myCanvas"></canvas>
+<input type="button" value="make random cactus graph" onclick="redrawRandomCactusGraph()">
+<input type="button" value="make random uncactus graph" onclick="redrawRandomUnCactusGraph()">
+<input type="button" value="check cactus graph" onclick="doCheckCactusGraph()">
+<input type="button" value="test check cactus graph" onclick="doTestCheckCactusGraph()">
+<input type="button" value="test check uncactus graph" onclick="doTestCheckUnCactusGraph()">
+<input type="button" value="coloring graph" onclick="doColoring()">
+<input type="number" value=2 id="graphSize">
+<input type="number" value=2 id="graphComplex">
+<!-- <textarea id="fileContent" cols="40" rows="8">5 5
+1 2
+1 3
+3 2
+5 2
+4 2
+</textarea> -->
+
+
+<script>
+    const canvas = document.getElementById('myCanvas');
+    const ctx = canvas.getContext('2d');
+    let Nodes = []; //{x, y, index, p, c, in, out}
+    let Edges = []; //{Node1ID, Node2ID}
+    let clickedNodeId = -1;
+    let lastEvent = "";
+    let edgeStartNodeId = -1;
+    let isDrawingEdge = false;
+    let isFinishedMove = true;
+    let circleSize = 0;
+    let nodeIdNow = 0;
+    let Color = [0,1,2];//赤, 青, 黃
+    let colorName = ["red", "blue", "yellow"]
+
+    let visitTime = {};
+
+    function initialize(){
+        Nodes = [];
+        Edges = [];
+        clickedNodeId = -1;
+        lastEvent = "";
+        edgeStartNodeId = -1;
+        isDrawingEdge = false;
+        isFinishedMove = true;
+        nodeIdNow = 0;
+    }
+
+    function resizeWindow(){ // canvasのサイズを変更
+        let minSize = Math.min(document.body.clientHeight,document.body.clientWidth);
+        canvas.width = minSize*3/4;
+        canvas.height = minSize*3/4;
+        circleSize = minSize/20;
+        redrawCanvas();
+    }
+
+    function getCanvasSize(){
+        return canvas.width;
+    }
+
+    function drawNode(x, y, c, id) { //円を描写
+        ctx.beginPath();
+        ctx.arc(x, y, circleSize, 0, Math.PI * 2);
+        ctx.fillStyle = colorName[c];
+        ctx.fill();
+        ctx.strokeStyle = 'black'; 
+        ctx.stroke(); 
+        ctx.fillStyle = 'black';
+        ctx.fillText(id, x, y);
+        ctx.closePath();
+    }
+
+    function drawEdge(i, j){// idがi,jのノード間にエッジ
+        let NodeI = getNodeIndex(Nodes, i);
+        let NodeJ = getNodeIndex(Nodes, j);
+        let xi = Nodes[NodeI].x;
+        let yi = Nodes[NodeI].y;
+        let xj = Nodes[NodeJ].x;
+        let yj = Nodes[NodeJ].y;
+        drawLine(xi, yi, xj, yj);
+        drawSquare((xi+xj)/2-5, (yi+yj)/2-5, 10);
+      
+    }
+
+    function drawLine(x0, y0, x1, y1){
+        ctx.beginPath();
+        ctx.moveTo(x0, y0);
+        ctx.lineTo(x1, y1);
+        ctx.strokeStyle = 'black'; 
+        ctx.stroke();
+        ctx.closePath();
+    }
+
+    function drawSquare(x,y,width){
+        ctx.beginPath();
+        ctx.rect(x, y, width, width);
+        ctx.strokeStyle = "black";
+        ctx.stroke();
+        ctx.closePath();
+    }
+
+    // Function to clear the canvas
+    function clearCanvas() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    // Function to redraw all Nodes
+    function redrawNodes() {
+        Nodes.forEach(Node => {
+            drawNode(Node.x, Node.y, Node.c, Node.id);
+        });
+    }
+    function redrawEdges(){
+        Edges.forEach(Edge => {
+            drawEdge(Edge.start, Edge.end);
+        });
+    }
+
+    function redrawCanvas(){
+        clearCanvas();
+        redrawEdges();
+        redrawNodes();
+    }
+
+    function removeEdgesById(edges, id){
+        // return array.filter(function(element){
+        //     return (element.start != id && element.end != id);
+        // });
+        let resEdges = [];
+        edges.forEach(edge=>{
+            if(edge.start!=id&&edge.end!=id){
+                resEdges.push(getEdgeCopy(edge));
+            }
+        })
+        return resEdges;
+    }
+
+    function getNodeIndex(nodes, id) {
+        let index = nodes.findIndex(node => node.id == id);
+        return index !== -1 ? index : -1;
+    }
+
+    function handleMouseDown(event){
+        clickedNodeId = -1;
+        const rect = canvas.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+        Nodes.forEach(Node => {
+            const dx = x - Node.x;
+            const dy = y - Node.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            if (distance < circleSize) {
+                clickedNodeId = Node.id;
+            }
+        });
+
+        lastEvent = "mousedown";
+    }
+
+    function handleMouseUp(event){
+        clickedNodeId = -1;
+
+        lastEvent = "mouseup";
+    }
+
+    function handleClick(event){
+        if(isFinishedMove){
+            const rect = canvas.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+
+            clickedNodeId = -1;
+            Nodes.forEach(Node => {
+                const dx = x - Node.x;
+                const dy = y - Node.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                if (distance < circleSize) {
+                    clickedNodeId = Node.id;
+                }
+            });
+            if(clickedNodeId !== -1){
+                if(!isDrawingEdge){
+                    edgeStartNodeId = clickedNodeId;
+                    isDrawingEdge = true;
+                }else{
+                    if(edgeStartNodeId !== clickedNodeId){
+                        Edges.push({start: edgeStartNodeId, end: clickedNodeId});
+                    }
+                    isDrawingEdge = false;
+                }
+            }
+        }
+        isFinishedMove = true;
+        redrawCanvas();
+    }
+
+    // Function to handle mouse click
+    function handleDoubleClick(event) {
+        const rect = canvas.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+
+        clickedNodeId = -1;
+        Nodes.forEach(Node=> {
+            const dx = x - Node.x;
+            const dy = y - Node.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            if (distance < circleSize) {
+                clickedNodeId = Node.id;
+            }
+        });
+
+        if (clickedNodeId !== -1) {
+            Nodes.splice(getNodeIndex(Nodes, clickedNodeId), 1); // Remove the clicked Node
+            Edges = removeEdgesById(Edges, clickedNodeId);
+            clickedNodeId = -1;
+            isDrawingEdge = false;
+        } else {
+            Nodes.push(new Node(x, y, nodeIdNow, nodeIdNow++, 0)); // Add a new Node
+        }
+
+        redrawCanvas();
+    }
+
+    // Function to handle mouse drag
+    function handleDrag(event) {
+        if(event.buttons == 1){
+            isFinishedMove = false;
+            const rect = canvas.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+            // Find the Node being dragged
+            if (event.buttons === 1 && clickedNodeId!==-1) {
+                let Node = Nodes[getNodeIndex(Nodes, clickedNodeId)];
+                Node.x = x;
+                Node.y = y;
+                redrawCanvas();
+            }
+        }
+        
+    }
+
+
+    // Event listeners
+    canvas.addEventListener('mousedown', handleMouseDown);
+    canvas.addEventListener('mouseup', handleMouseUp);
+    canvas.addEventListener('click', handleClick);
+    canvas.addEventListener('dblclick', handleDoubleClick);
+    canvas.addEventListener('mousemove', handleDrag);
+    window.addEventListener("DOMContentLoaded", resizeWindow);
+    window.addEventListener("resize", resizeWindow);
+
+    // make graph
+    function redrawRandomCactusGraph(){
+        initialize();
+        makeRandomCactusGraph();
+        clearCanvas();
+        redrawCanvas();
+    }
+
+    function redrawRandomUnCactusGraph(){
+        initialize();
+        makeRandomUnCactusGraph();
+        clearCanvas();
+        redrawCanvas();
+    }
+
+    function makeRandomCactusGraph(){// w回c個から成る部分グラフ生成
+        let graphSize = document.getElementById("graphSize").value;
+        let graphComplex = document.getElementById("graphComplex").value;
+        Nodes = [];
+        Edges = [];
+        // console.log("start make cactus");
+        let camvasSize = getCanvasSize();
+        let beginNode = new Node(Math.random()*camvasSize, Math.random()*camvasSize, nodeIdNow, nodeIdNow++, 0); //開始ノード作成
+        Nodes.push(beginNode);//ノードとして登録
+        for(let i=0;i<graphSize;i++){
+            let nowNode = Nodes[Math.floor(Math.random()*Nodes.length)];//ノード選択
+            makeRandomGraph(nowNode, graphComplex);
+        }
+    }
+
+    function makeRandomUnCactusGraph(){
+        let graphSize = document.getElementById("graphSize").value;
+        let graphComplex = document.getElementById("graphComplex").value;
+        Nodes = [];
+        Edges = [];
+        // console.log("start make uncactus");
+        let camvasSize = getCanvasSize();
+        let beginNode = getRandomNode();
+        Nodes.push(beginNode);//ノードとして登録
+        makeRandomCycle(beginNode, Math.floor(Math.random()*(graphComplex-3)+3)); //3以上graphComplex以下の長さの閉路作成
+        let randomNodeIndex1 = Math.floor(Math.random()*Nodes.length);
+        let randomNodeIndex2 = Math.floor(Math.random()*Nodes.length);
+        if(randomNodeIndex1==randomNodeIndex2) randomNodeIndex2 = (randomNodeIndex1+1)%Nodes.length;
+        makeRandomCycleFromPath(Nodes[randomNodeIndex1], Nodes[randomNodeIndex2], graphComplex); //閉路から閉路を生やす
+        for(let i=0;i<graphSize;i++){
+            let nowNode = Nodes[Math.floor(Math.random()*Nodes.length)];//ノード選択
+            makeRandomGraph(nowNode, graphComplex);
+        }
+    }
+
+    function makeRandomCycleFromPath(node1, node2, cycleLength){
+        // console.log("pathFrom:node1:"+node1.id+",node2:"+node2.id);
+        let nextNode = node1;
+        let cnt = 0;
+        let randomCycleLength = Math.floor(Math.random()*(cycleLength-3)+3);
+        do{
+            let parentNode = nextNode;//最後のノードを取得
+            let childNode = getRandomNode(); 
+            Nodes.push(childNode);
+            Edges.push({start: parentNode.id, end: childNode.id});
+            nextNode = childNode;//最後のノード更新
+            cnt += 1;
+        }while(cnt<randomCycleLength);
+        Edges.push({start: nextNode.id, end: node2.id});
+    }
+
+    function makeNotCactusGraph(beginNode, c){ //２つの閉路がくっついた形のグラフを一つ作る
+        makeRandomCycle(beginNode, c); //閉路を１つ生成
+        
+        if(randomNodeIndex1==randomNodeIndex2) randomNodeIndex2 = (randomNodeIndex1+1)%Nodes.length;
+        let onCycleNode1 = Nodes[randomNodeIndex1];
+        let onCycleNode2 = Nodes[randomNodeIndex2];
+        
+    }
+
+    function makeRandomGraph(nowNode, c){
+        if(Math.random()>0.5){
+            makeRandomCycle(nowNode, c);
+        }else{
+            makeRandomTree(nowNode, c);
+        }
+    }
+
+    function makeRandomTree(rootNode, pathLength){//rootNodeを根, ノード数c
+        let treeNodes = [];
+        treeNodes.push(rootNode);
+        let cnt = 0;
+        let randomPathLength = Math.floor(Math.random()*(pathLength-2)+2);
+        do{
+            let parentNode = treeNodes[Math.floor(Math.random()*treeNodes.length)]; //親取得
+            let childNodes = [];
+            let childrenSize = Math.floor(Math.random()*randomPathLength); //子の数決定
+            for(let i=0;i<childrenSize;i++){
+                let childNode = getRandomNode();//子生成
+                Nodes.push(childNode);//子をノードとして登録
+                Edges.push({start: parentNode.id, end: childNode.id});//エッジ作成
+                treeNodes.push(childNode);
+                cnt += 1;
+            }
+        }while(cnt<randomPathLength);
+    }
+
+    function makeRandomCycle(rootNode, cycleLength){
+        let nextNode = rootNode;
+        let cnt = 0;
+        let randomCycleLength = Math.floor(Math.random()*(cycleLength-3)+3);
+        do{
+            let parentNode = nextNode;//最後のノードを取得
+            let childNode = getRandomNode(); 
+            Nodes.push(childNode);
+            Edges.push({start: parentNode.id, end: childNode.id});
+            nextNode = childNode;//最後のノード更新
+            cnt += 1;
+        }while(cnt<randomCycleLength);
+        Edges.push({start: nextNode.id, end: rootNode.id});
+    }
+
+    function getRandomNode(){
+        let camvasSize = getCanvasSize();
+        return new Node(Math.random()*camvasSize, Math.random()*camvasSize, nodeIdNow, nodeIdNow++, 0);
+    }
+
+    function isIdInNodes(nodes, id){
+        let isIn = false;
+        nodes.forEach(node=>{
+            if(node.id===id) isIn = true;
+        })
+        return isIn;
+    }
+
+    // 前処理
+    let minNodes = [];
+    let minEdges = [];
+    function doMinimizeOnIsCactusGraph(){
+        minNodes = getNodesCopy(Nodes);
+        minEdges = getEdgesCopy(Edges);
+        deleteLeavesMinNodesEdges(); // 次数1以下のノードを削除
+        deleteEdgesOnCycle(); // 閉路をなるべく小さくする
+    }
+
+    function deleteEdgesOnCycle(){ // 閉路をなるべく小さくする 次数2かつ各隣接ノードが隣接していないなら削除
+        let deleteNodeIds = [];
+        for(let i=0;i<minNodes.length;i++){ //ノードを順番に参照
+            let cnt=0;
+            let isFind = false;
+            let nodeId1 = -1;
+            let nodeId2 = -1;
+            minEdges.forEach(edge=>{
+                if(edge.start==minNodes[i].id){ //エッジの片方が一致するなら
+                    if(cnt==0)nodeId1 = edge.end;
+                    else nodeId2 = edge.end;
+                    cnt++;
+                }else if(edge.end==minNodes[i].id){ //エッジの片方が一致するなら
+                    if(cnt==0) nodeId1 = edge.start;
+                    else nodeId2 = edge.start;
+                    cnt++;
+                }
+            })
+            if(cnt==2){ // 次数が2ならば
+                let isTriangle = false;
+                for(let j=0;j<minEdges.length;j++){//三角形を成すか判定
+                    if((minEdges[j].start==nodeId1&&minEdges[j].end==nodeId2)||(minEdges[j].start==nodeId2&&minEdges[j].end==nodeId1)) { //nodeとnodeId1とnodeId2で三角形を成すならば
+                        // console.log("edge:"+minEdges[j].start+"->"+minEdges[j].end+", nodeId=["+nodeId1+","+nodeId2+"],nodeID:"+minNodes[i].id);
+                        isTriangle = true;
+                        break; //三角形ならば次のノードへ
+                    }
+                }
+                if(!isTriangle){//三角形でないならば
+
+                    // let teststr = "前minNodes:[";
+                    // minNodes.forEach(node=>{
+                    //     teststr+=node.id + " ";
+                    // })
+                    // console.log(teststr+"]");
+                    // teststr = "前minEdges:[";
+                    // minEdges.forEach(edge=>{
+                    //     teststr += "(" + edge.start + ","+edge.end + ")";
+                    // })
+                    // console.log(teststr+"]");
+
+
+                    minEdges = removeEdgesById(minEdges, minNodes[i].id);//削除処理
+                    minNodes.splice(getNodeIndex(minNodes, minNodes[i].id), 1);//削除処理
+                    minEdges.push({start:nodeId1, end:nodeId2});//エッジ追加
+                    isFind = true;
+
+                    // teststr = "後minNodes:[";
+                    // minNodes.forEach(node=>{
+                    //     teststr+=node.id + " ";
+                    // })
+                    // console.log(teststr+"]");
+                    // teststr = "後minEdges:[";
+                    // minEdges.forEach(edge=>{
+                    //     teststr += "(" + edge.start + ","+edge.end + ")";
+                    // })
+                    // console.log(teststr+"]");
+                }
+            }
+            if(isFind){//削除が行われたならば
+                deleteEdgesOnCycle();//削除後のグラフに対して削除処理
+                break;
+            }
+        }
+    }
+
+    function deleteLeavesMinNodesEdges(){ //次数1以下のノードを削除
+        let isContinueDelete = false;
+        let deleteNodeIds = [];
+        if(minNodes.length>2){
+            minNodes.forEach((node,i)=>{
+                let cnt = 0;
+                minEdges.forEach(edge=>{
+                    if(edge.start==node.id || edge.end==node.id) cnt++;
+                })
+                if(cnt<=1) {
+                    isContinueDelete = true;
+                    deleteNodeIds.push(node.id);
+                }
+            })
+            deleteNodeIds.forEach(nodeId=>{
+                minNodes.splice(getNodeIndex(minNodes, nodeId), 1);
+                minEdges = removeEdgesById(minEdges, nodeId);
+            });
+            if(isContinueDelete) deleteLeavesMinNodesEdges();
+        }
+    }
+
+    // cactus check
+    function doTestCheckCactusGraph(){
+        for(let i=0;i<100;i++){
+            redrawRandomCactusGraph();
+            doCheckCactusGraph();
+            if(!isCactus)break;
+        }
+    }
+
+    function doTestCheckUnCactusGraph(){
+        for(let i=0;i<100;i++){
+            redrawRandomUnCactusGraph();
+            doCheckCactusGraph();
+            if(isCactus)break;
+        }
+    }
+
+    let originNodes = [];
+    let originEdges = [];
+    function doCheckCactusGraph(){
+        doMinimizeOnIsCactusGraph();
+        
+        let teststr = "minNodes:[";
+        minNodes.forEach(node=>{
+            teststr+=node.id + " ";
+        })
+        console.log(teststr+"]");
+        // teststr = "oriEdges:[";
+        // Edges.forEach(edge=>{
+        //     teststr += "(" + edge.start + ","+edge.end + ")";
+        // })
+        // console.log(teststr+"]");
+        teststr = "minEdges:[";
+        minEdges.forEach(edge=>{
+            teststr += "(" + edge.start + ","+edge.end + ")";
+        })
+        console.log(teststr+"]");
+        
+        originNodes = getNodesCopy(Nodes);
+        originEdges = getEdgesCopy(Edges);
+        Nodes = getNodesCopy(minNodes);
+        Edges = getEdgesCopy(minEdges);
+
+        // teststr = "Nodes:[";
+        // minNodes.forEach(node=>{
+        //     teststr+=node.id + " ";
+        // })
+        // console.log(teststr+"]");
+        // teststr = "Edges:[";
+        // minEdges.forEach(edge=>{
+        //     teststr += "(" + edge.start + ","+edge.end + ")";
+        // })
+        // console.log(teststr+"]");
+
+        // console.log("docheck iscycle:",isCycle)
+        isCycle = false;
+        isCactus = true;
+        separatedGraphs = [getNodesCopy(Nodes)];
+        isCactusGraph(Nodes);
+        if(isCactus)console.log("yes cactus");
+        else console.log("no cactus");
+
+        Nodes = getNodesCopy(originNodes);
+        Edges = getEdgesCopy(originEdges);
+        redrawCanvas();
+    }
+
+    let separatedGraphs = [];
+    let lastSeparatedGraphs = [];
+    let isCactus = true;
+    function isCactusGraph(nodes){
+        lastSeparatedGraphs = getGraphsCopy(separatedGraphs); // 前のグラフを保存(エッジ数えのため)
+        separatedGraphs = getSeparatedGraphs(nodes); // 関節点を削除し分割されたグラフの集合
+
+        let teststr = "graphs:[";
+        separatedGraphs.forEach(graph=>{
+            teststr += "[";
+            graph.forEach(node=>{
+                teststr += node.id + " ";
+            })  
+            teststr += "]";
+        })
+        console.log(teststr + "]");
+        // console.log("for外isCycle:",isCycle);
+        for(let i=0;i<separatedGraphs.length;i++){// 分割されたそれぞれのグラフに対して
+            let deletedEdgeNum = getDeletedEdgeNum(separatedGraphs[i]); //グラフからエッジが何本消えたか
+            if(deletedEdgeNum>=3) { // 消えたエッジが3本以上の時
+                console.log("3")
+                isCactus = false;
+            }else if(deletedEdgeNum===2){ //消えたエッジが2本の時
+                console.log("2");
+                visitedIsConnected1 = [];
+                visitedIsConnected2 = [];
+                separatedGraphs[i].forEach(node=>{visitedIsConnected1.push(false);visitedIsConnected2.push(false);})
+                let edgeDeletedNodeIds = getEdgeDeleted2NodeIds(separatedGraphs[i]);
+                console.log("edgeDeletedNodeIds:",edgeDeletedNodeIds);
+                
+                getPathFromNodeToNode(separatedGraphs[i][getNodeIndex(separatedGraphs[i], edgeDeletedNodeIds[0])], 
+                                    separatedGraphs[i][getNodeIndex(separatedGraphs[i], edgeDeletedNodeIds[1])], 
+                                    separatedGraphs[i])
+                console.log("searchPathStack:",searchPathStack)
+                if(separatedGraphs[i].length>2){
+                    console.log("2じゃないよ");
+                    //searchPathStack内の任意の2頂点が閉路の一部であるか調べる
+                    for(let j=0;j<searchPathStack.length-1;j++){
+                        for(let k=j+1;k<searchPathStack.length;k++){
+                            visitedNodeIdStack = [];
+                            isCycle = false;
+                            // console.log("connectesdDFSだよ")
+                            connectedDfs(searchPathStack[j], 
+                                        separatedGraphs[i], 
+                                        -1, 
+                                        1, 
+                                        [searchPathStack[j], searchPathStack[k]]);
+                            if(isCycle) {
+                                console.log("stack:", searchPathStack);
+                                console.log("separ:", separatedGraphs[i])
+                                console.log("edges:", Edges);
+                                break;
+                            }
+                        }
+                        if(isCycle) break;
+                    }
+                }
+                // console.log("isCycle:",isCycle);
+                if(isCycle){// エッジが消えた2つのノードが閉路の一部である時
+                    console.log("閉路だよ")
+                    isCactus=false;
+                }else{
+                    isCactusGraph(separatedGraphs[i]); //再帰呼び出し
+                }
+            } else if(separatedGraphs[i].length>2){ //消えたエッジが1本の時
+                isCactusGraph(separatedGraphs[i]); //再帰呼び出し
+            }
+        }
+        return true;
+    }
+
+    let searchPathStack = []; //パスを格納
+    let visitedSearchPathQueue = [];
+    let prevNodes = []; // 経路復元に使う
+    function getPathFromNodeToNode(startNode, goalNode, graph){// searchPathStackにパスを記録
+        searchPathStack = [];
+        pathStack = [];
+        visitedSearchPath = [];
+        visitedSearchPathQueue = [];
+        prevNodes = [];
+        graph.forEach(graph=>{prevNodes.push(-2)});
+        prevNodes[getNodeIndex(graph, startNode.id)] = -1; 
+        visitedSearchPathQueue.push(startNode);
+        isFindPath = false;
+        console.log("start:"+startNode.id+",goal:"+goalNode.id);
+        searchPathBfs(startNode, graph, goalNode);
+        
+        restoreBfsPath(graph, goalNode);
+    }
+
+    function restoreBfsPath(graph, goalNode){
+        let nowNodeIndex = getNodeIndex(graph, goalNode.id); 
+        console.log(goalNode, graph, nowNodeIndex)
+        console.log(prevNodes);
+        do{
+            console.log(searchPathStack);
+            searchPathStack.push(graph[nowNodeIndex].id);
+            if(prevNodes[nowNodeIndex]==-1) break;
+            nowNodeIndex = prevNodes[nowNodeIndex];
+        }while(true)
+    }
+
+    let isFindPath = false;
+    function searchPathBfs(visitingNode, graph, goalNode){ //BFSにより最短パスを探索
+        let visitingNodeId = visitingNode.id;
+        let visitingNodeIndex = getNodeIndex(graph, visitingNodeId);
+        visitedSearchPath[visitingNodeIndex] = true;
+        do{
+            let nowNode = visitedSearchPathQueue.shift();
+            let neighborNodes = getNeighborNodes(nowNode, graph);
+            neighborNodes.forEach(node=>{
+                let nextNodeIndex = getNodeIndex(graph, node.id);
+                if(prevNodes[nextNodeIndex]>=-1){
+
+                }else{
+                    prevNodes[nextNodeIndex] = getNodeIndex(graph, nowNode.id);
+                    visitedSearchPathQueue.push(node);
+                }
+            })
+        }while(visitedSearchPathQueue.length>0)
+    }
+
+    function getEdgeDeleted2NodeIds(graph){
+        let resNodeIds = [];
+        let lastGraph = getLastGraph(graph[0]);
+        graph.forEach(node=>{
+            Edges.forEach(edge=>{
+                if(node.id==edge.start){
+                    if(isIdInNodes(lastGraph, edge.end) && !isIdInNodes(graph, edge.end)){//前のグラフにあって今のグラフにないノードならば
+                        resNodeIds.push(edge.start);
+                    }
+                }else if(node.id==edge.end){
+                    if(isIdInNodes(lastGraph, edge.start) && !isIdInNodes(graph, edge.start)){//前のグラフにあって今のグラフにないノードならば
+                        resNodeIds.push(edge.end);
+                    }
+                }
+            })
+        })
+        return resNodeIds;
+    }
+
+    function getAddedNodes(nodes1, nodes2){
+        node2.forEach(node=>{ //既にないなら追加
+            if(!isIdInNodes(nodes1, node.id)) nodes1.push(node);
+        })
+        return nodes1;
+    }
+
+    function getSubtractedNodes(nodes1, nodes2){
+        node2.forEach(node=>{ //既にあるなら削除
+            if(isIdInNodes(nodes1, node.id)) nodes1.splice(getNodeIndex(nodes1, node.id),1);
+        })
+        return nodes1;
+    }
+    
+
+    let visitedIsConnected1 = []; 
+    let isCycle = false;
+    //separatedGraphs[i]-searchPathStack+searchPathStack[j]+searchPathStack[j]の中でsearchPathStack[j]からsearchPathStack[j]に到達できるか
+    function connectedDfs(nodeId, graph, beforeNodeId, visitNum, nodesInCycle){ 
+        let visitingIndex = getNodeIndex(graph, nodeId);
+        visitedIsConnected1[visitingIndex] = true;
+        console.log("visitID:",nodeId);
+        let childNodes = getNeighborNodes(graph[visitingIndex], graph);
+
+        childNodes.forEach(node=>{
+            console.log("node.id:",node.id)
+            console.log("nodeId!=nodesInCycle[0] && node.id!=nodesInCycle[1]",nodeId!=nodesInCycle[0] && node.id!=nodesInCycle[1]);
+            console.log("nodeId==nodesInCycle[0]&&node.id!=nodesInCycle[1]",nodeId==nodesInCycle[0]&&node.id!=nodesInCycle[1]);
+            
+            // console.log("node.id==nodesInCycle[1]",node.id==nodesInCycle[1]);
+            if((!searchPathStack.includes(nodeId)&&searchPathStack.includes(node.id)) || (searchPathStack.includes(nodeId)&&!searchPathStack.includes(node.id))||(!searchPathStack.includes(nodeId)&&!searchPathStack.includes(node.id))){ //スタートの隣のゴールではない
+                console.log("!visitedIsConnected1[getNodeIndex(graph, node.id)]",!visitedIsConnected1[getNodeIndex(graph, node.id)]);
+                console.log("node.id!=beforeNodeId",node.id!=beforeNodeId);
+                console.log("!searchPathStack.includes(node.id)",!searchPathStack.includes(node.id));
+                if(!visitedIsConnected1[getNodeIndex(graph, node.id)] //未訪問である
+                    && node.id!=beforeNodeId  //親ノードではない
+                    && (!searchPathStack.includes(node.id))) { //サーチパスにない
+                    //子供を訪問 親には訪問しない
+                    connectedDfs(node.id, graph, nodeId, visitNum+1, nodesInCycle);
+                } else if(node.id==nodesInCycle[1] //ゴールである 
+                    && node.id!=beforeNodeId) { //親ノードではない
+                        console.log("やぁ")
+                    isCycle=true;
+                }
+                
+            }
+        })
+    }
+
+
+
+    function getDeletedEdgeNum(nodes){//分離前(直前)のグラフと比較
+        let cnt = 0;
+        let lastGraph = getLastGraph(nodes[0]); // 今のグラフが含まれていた前のグラフを取得
+        nodes.forEach(node=>{//部分グラフの各ノードについて
+            Edges.forEach(edge=>{
+                if(node.id===edge.start){
+                    if(isIdInNodes(lastGraph, edge.end) && !isIdInNodes(nodes, edge.end)) {
+                        cnt++;
+                    }
+                }else if(node.id===edge.end){
+                    if(isIdInNodes(lastGraph, edge.start) && !isIdInNodes(nodes, edge.start)) {
+                        cnt++;
+                    }
+                }
+            })
+        })
+        return cnt;
+    }
+
+    function getLastGraph(node){
+        let resGraph = [];
+        lastSeparatedGraphs.forEach(graph=>{
+            if(isIdInNodes(graph, node.id)){
+                resGraph = getNodesCopy(graph);
+            }
+        })
+        return resGraph;
+    }
+
+    let isVisited = []; //再帰で参照し続けるのでグローバル dfs
+    let lowArray = []; //再帰で参照し続けるのでグローバル dfs
+    let ordArray = []; //再帰で参照し続けるのでグローバル dfs
+    let ordNum = 1; //再帰で参照し続けるのでグローバル dfs
+    let dfsTree = []; //{parent:id, children:[id1, ... idk]} dfs木を隣接リストで作る
+    // let separatedGraphs = [];// 分割結果を格納する
+    let deletedNodes = []; //ノードを削除したあとのノード集合
+    function getSeparatedGraphs(nodes){//nodesの関節点を削除し, node配列の配列を返す 
+        separatedGraphs = [];// 分割結果を格納するので初期化
+        deletedNodes = getNodesCopy(nodes); //削除処理用のノード配列を作成
+        isVisited = []; //初期化
+        lowArray = [];
+        ordArray = [];
+        ordNum = 1;
+        dfsTree = [];
+        nodes.forEach(node=>{
+            isVisited.push(false);
+            lowArray.push(-1);
+            ordArray.push(-1);
+            dfsTree.push({parent:node.id, children:[]});
+        });
+        let beginNode = nodes[0]; //dfsを開始するノード
+        dfs(nodes, beginNode, beginNode); //dfs木, low, ordを作成 再帰です
+        // 今から, dfs木を辿って関節点を探します. dfsTree上で全ての関節点を削除します.
+        isVisited.forEach((n,i)=>{ //今からまた使うので初期化
+            isVisited[i] = false;
+        })
+        deleteDfs(nodes, beginNode.id, true); //deletedNodesに関節点を除いたノード集合を格納
+        
+        makeSeparatedNodes(); // separatedGraphsに分割されたグラフを格納
+        return separatedGraphs;
+    }
+
+    function makeSeparatedNodes(){
+        isVisited = [];// 初期化
+        deletedNodes.forEach(node=>{
+            isVisited.push(false);
+        })
+        let beginNode = deletedNodes[0];
+        deletedNodes.forEach((node,i)=>{
+            if(!isVisited[i]) {
+                separatedGraphs.push([]); //このグラフを記録する配列を追加
+                unionDfs(deletedNodes, node); //訪問済で無ければDFS
+            }
+        })
+    }
+
+    function unionDfs(nodes, visitingNode){
+        visitingIndex = getNodeIndex(nodes, visitingNode.id); //訪問しているノード
+        isVisited[visitingIndex] = true; //訪問済にする
+        separatedGraphs[separatedGraphs.length-1].push(visitingNode); //分割されたグラフの一部として登録
+        let childNodes = getNeighborNodes(visitingNode, nodes); //隣接ノードを取得
+        childNodes.forEach(node=>{ //隣接ノード一つずつに対して処理
+            let childIdIndex = getNodeIndex(nodes, node.id);
+            if(!isVisited[childIdIndex] && childIdIndex!==-1){
+                unionDfs(nodes, node);
+            }
+        })
+    }
+
+    
+
+    let beforeDeletedNodes = [];
+    let isDeleted = false;
+    function deleteDfs(nodes, visitingId, isStart){ //nodesからvisitingIdを消せるなら消す
+        if(isStart){
+            beforeDeletedNodes = getNodesCopy(nodes);
+            isDeleted = false;
+        }
+        if(nodes.length==1) return;
+        visitingIndex = getNodeIndex(nodes, visitingId); //Nodes上のインデックス
+        isVisited[visitingIndex] = true; //isVisitedはNodesに対応
+        let childIds = getDfsTreeChildren(visitingIndex); //DFStree上の子ノード達を取得
+        let isExist = false;
+        childIds.forEach(childId => {// 各子どもたちに対して
+            let nextIndex = getNodeIndex(nodes, childId); //Nodes上のインデックス
+            if(!isStart && ordArray[visitingIndex]<=lowArray[nextIndex] &&  isIdInNodes(deletedNodes,visitingId)) {
+                isExist = true;
+            }
+            if(!isVisited[nextIndex] && !isDeleted) deleteDfs(nodes, childId, false);
+        })
+
+        // 削除処理開始
+        if(!isDeleted){
+            if(isExist || (isStart&&childIds.length>=2)) {
+                deletedNodes.splice(getNodeIndex(deletedNodes, visitingId),1);//削除処理
+                isDeleted = true;
+            }
+            if(isStart && childIds.length<2){
+                if(beforeDeletedNodes.length==nodes.length) {//関節点がない場合は次数最大の点を消す
+                    deletedNodes.splice(getNodeIndex(deletedNodes, getMaxDegreeId(nodes)),1); //削除処理
+                    isDeleted = true;
+                }
+            }
+        }
+        //削除処理終了
+    }
+
+
+    function getMaxDegreeId(nodes){ // nodes内の最大次数のノードのidを返す
+        let maxDegreeId = -1;
+        let maxDegree = -1;
+        nodes.forEach(node=>{
+            let nowDegree = 0;
+            Edges.forEach(edge=>{
+                if(node.id==edge.start && isIdInNodes(nodes, edge.end)){
+                    nowDegree++;
+                }else if(node.id==edge.end && isIdInNodes(nodes, edge.start)){
+                    nowDegree++;
+                }
+            })
+            if(nowDegree>maxDegree) maxDegreeId = node.id;
+        })
+        return maxDegreeId;
+    }
+
+    function getDfsTreeChildren(parentId){
+        for(let i=0;i<dfsTree.length;i++){
+            if(parentId == dfsTree[i].parent) return dfsTree[i].children;
+        }
+        return dfsTree;
+    }
+
+    function getDeletedDfsTree(deleteNodeId){
+        let deletedDfsTree = dfsTree;
+        for(let i=0;i<deletedDfsTree.length;i++){
+            if(deleteNodeId == deletedDfsTree[i].parent) {
+                deletedDfsTree.splice(i,1);
+                break;
+            }
+        }
+        for(let i=0;i<deletedDfsTree.length;i++){
+            let childIdIndex = deletedDfsTree[i].children.indexOf(deleteNodeId);
+            if(childIdIndex != -1) {
+                deletedDfsTree[i].children(childIdIndex,1);
+            }
+        }
+        return deletedDfsTree;
+    }
+
+    function dfs(nodes, visitingNode, beforeNode){
+        isVisited[getNodeIndex(nodes, visitingNode.id)] = true;
+        // 訪問時操作開始
+        let visitingIndex = getNodeIndex(nodes, visitingNode.id);
+        ordArray[visitingIndex] = ordNum;
+        lowArray[visitingIndex] = ordNum;
+        ordNum += 1;
+        // 訪問時操作終了
+        let neighborNodes = getNodeDeletedNodes(getNeighborNodes(visitingNode, nodes), beforeNode);
+        neighborNodes.forEach(node => {
+            let nextIndex = getNodeIndex(nodes, node.id);
+            if(!isVisited[nextIndex] && nextIndex!==-1) {
+                dfsTree.forEach((t,i)=>{if(t.parent==visitingNode.id)dfsTree[i].children.push(node.id);});
+                dfs(nodes, node, visitingNode);
+                if(lowArray[visitingIndex] > lowArray[nextIndex]) lowArray[visitingIndex] = lowArray[nextIndex];
+            } else { //行こうとした先が訪問済だった時
+                if(lowArray[visitingIndex]>ordArray[nextIndex]) lowArray[visitingIndex] = ordArray[nextIndex];
+            }
+        })
+    }
+
+    function getNodeDeletedNodes(nodes, node){
+        for(let i=0;i<nodes.length;i++){
+            if(nodes[i].id==node.id){
+                nodes.splice(i,1);
+            }
+        }
+        return nodes;
+    }
+
+    // coloring
+    function doColoring(){
+        do{
+            let beforeCalcNodes = getNodesCopy(Nodes);//操作前のノード達を避難
+            let calcNodes = getRandomElements(beforeCalcNodes);//ランダムで複数個のノードを取得
+            for(let i=0;i<calcNodes.length;i++){
+                //各ノードで計算, 内部情報の更新
+                calcingNode = calcNodes[i];
+                let neighborNodes = getNeighborNodes(calcingNode, beforeCalcNodes);//操作前の隣人達
+                if(isOutBiggerThan2(neighborNodes, calcingNode)){ // if Out(i)>2
+                    Nodes[getNodeIndex(Nodes, calcingNode.id)].p =  getMaxX(neighborNodes)+1;
+                }else if(isInColor(getOutEdges(neighborNodes, calcingNode), calcingNode.c)){
+                    let tempNode = Nodes[getNodeIndex(Nodes, calcingNode.id)];
+                    tempNode.c = getMinColor(getOutEdges(neighborNodes, calcingNode));
+                    Nodes[getNodeIndex(Nodes, calcingNode.id)] = tempNode.deepCopy();
+                }
+            }
+            // redrawCanvas();
+        }while(isColoring());//彩色が終わるまで
+        redrawCanvas();
+        console.log("coloring finish")
+    }
+
+    function isColoring(){
+        for(let i=0;i<Nodes.length;i++){
+            let node = Nodes[i];
+            let neighborNodes = getNeighborNodes(node, Nodes);
+            for(let j=0;j<neighborNodes.length;j++){
+                if(node.c == neighborNodes[j].c) return true;
+            }
+        }
+        return false;
+    }
+
+    function getMinColor(outNodes){
+        let tempColors = [0,1,2];
+        outNodes.forEach(node=>{
+            let res = tempColors.indexOf(node.c);
+            if(res!==-1){
+                tempColors.splice(res,1);
+            }
+        })
+        let res = tempColors.reduce(function (a, b) {return Math.min(a, b);}); 
+        return res;
+    }
+
+    function getOutEdges(neighborNodes, node){ //出辺先のノードの配列
+        let outEdges = [];
+        neighborNodes.forEach(neighbor => {
+            if(neighbor.p>node.p) outEdges.push(neighbor);
+            else if(neighbor.p==node.p && neighbor.id>node.id) outEdges.push(neighbor); 
+        })
+        return outEdges;
+    }
+
+    function isInColor(nodes, c){
+        let b = false;
+        nodes.forEach(node=>{
+            if(node.c == c)b = true;
+        })
+        return b;
+    }
+
+    function getMaxX(nodes){
+        let M = -1;
+        nodes.forEach(node=>{
+            if(node.p > M) M = node.p;
+        })
+        return M;
+    }
+
+    function isOutBiggerThan2(neighbors, node){
+        let cnt = 0;
+        neighbors.forEach(neighbor => {
+            if(neighbor.p>node.p) cnt += 1;
+            else if(neighbor.p==node.p && neighbor.id>node.id) cnt += 1; 
+        })
+        return cnt>2;
+    }
+
+    function getNeighborNodes(node, nodes){
+        let neighborNodes = [];
+        Edges.forEach(edge => {
+            if(edge.start==node.id && isIdInNodes(nodes, edge.end)) neighborNodes.push(nodes[getNodeIndex(nodes, edge.end)].deepCopy());
+            else if(edge.end==node.id  && isIdInNodes(nodes, edge.start)) neighborNodes.push(nodes[getNodeIndex(nodes, edge.start)].deepCopy());
+        })
+        return neighborNodes;
+    }
+
+    function getRandomElements(array){
+        return array.filter(function(){
+            return Math.random()>0.5;
+        });
+    }
+
+    function getEdgesCopy(edges){
+        let resEdges = [];
+        edges.forEach(edge=>{
+            resEdges.push(getEdgeCopy(edge));
+        })
+        return resEdges;
+    }
+
+    function getEdgeCopy(edge){
+        return {start:edge.start, end:edge.end};
+    }
+
+    function getNodesCopy(nodes){
+        let resNodes = [];
+        nodes.forEach(node=>{
+            resNodes.push(node.deepCopy());
+        })
+        return resNodes;
+    }
+
+    function getGraphsCopy(graphs){
+        let resGraphs = [];
+        graphs.forEach(graph => {
+            resGraphs.push(getNodesCopy(graph));
+        })
+        return resGraphs;
+    }
+
+    class Node{
+        constructor(x,y,id,p,c){
+            this.x = x; 
+            this.y = y;
+            this.id = id; //ノード識別子
+            this.p = p; //優先度決める値 
+            this.c = c; //色 
+        }
+        
+        deepCopy(){
+            return new Node(this.x, this.y, this.id, this.p, this.c);
+        }
+    }
+</script>
+</body>
+</html>
