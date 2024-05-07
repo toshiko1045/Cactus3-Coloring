@@ -531,7 +531,7 @@
         minNodes.forEach(node=>{
             teststr+=node.id + " ";
         })
-        console.log(teststr+"]");
+        // console.log(teststr+"]");
         // teststr = "oriEdges:[";
         // Edges.forEach(edge=>{
         //     teststr += "(" + edge.start + ","+edge.end + ")";
@@ -541,7 +541,7 @@
         minEdges.forEach(edge=>{
             teststr += "(" + edge.start + ","+edge.end + ")";
         })
-        console.log(teststr+"]");
+        // console.log(teststr+"]");
         
         originNodes = getNodesCopy(Nodes);
         originEdges = getEdgesCopy(Edges);
@@ -587,7 +587,7 @@
             })  
             teststr += "]";
         })
-        console.log(teststr + "]");
+        // console.log(teststr + "]");
         // console.log("for外isCycle:",isCycle);
         for(let i=0;i<separatedGraphs.length;i++){// 分割されたそれぞれのグラフに対して
             let deletedEdgeNum = getDeletedEdgeNum(separatedGraphs[i]); //グラフからエッジが何本消えたか
@@ -600,12 +600,12 @@
                 visitedIsConnected2 = [];
                 separatedGraphs[i].forEach(node=>{visitedIsConnected1.push(false);visitedIsConnected2.push(false);})
                 let edgeDeletedNodeIds = getEdgeDeleted2NodeIds(separatedGraphs[i]);
-                console.log("edgeDeletedNodeIds:",edgeDeletedNodeIds);
+                // console.log("edgeDeletedNodeIds:",edgeDeletedNodeIds);
                 
                 getPathFromNodeToNode(separatedGraphs[i][getNodeIndex(separatedGraphs[i], edgeDeletedNodeIds[0])], 
                                     separatedGraphs[i][getNodeIndex(separatedGraphs[i], edgeDeletedNodeIds[1])], 
                                     separatedGraphs[i])
-                console.log("searchPathStack:",searchPathStack)
+                // console.log("searchPathStack:",searchPathStack)
                 if(separatedGraphs[i].length>2){
                     // console.log("2じゃないよ");
                     //searchPathStack内の任意の2頂点が閉路の一部であるか調べる
@@ -613,8 +613,8 @@
                         for(let k=j+1;k<searchPathStack.length;k++){
                             visitedNodeIdStack = [];
                             isCycle = false;
-                            console.log("connectesdDFSだよ")
-                            console.log("start,goal",[searchPathStack[j], searchPathStack[k]])
+                            // console.log("connectesdDFSだよ")
+                            // console.log("start,goal",[searchPathStack[j], searchPathStack[k]])
                             connectedDfs(searchPathStack[j], 
                                         separatedGraphs[i], 
                                         -1, 
@@ -735,8 +735,8 @@
     function connectedDfs(nodeId, graph, beforeNodeId, visitNum, nodesInCycle){ 
         let visitingIndex = getNodeIndex(graph, nodeId);
         visitedIsConnected1[visitingIndex] = true;
-        console.log("visitID:",nodeId);
-        console.log("beforeID:",beforeNodeId, getNodeIndex(graph, beforeNodeId))
+        // console.log("visitID:",nodeId);
+        // console.log("beforeID:",beforeNodeId, getNodeIndex(graph, beforeNodeId))
         let childNodes = getNeighborNodes(graph[visitingIndex], graph);
         if(visitNum>=2) childNodes = getNodeDeletedNodes(childNodes, graph[getNodeIndex(graph, beforeNodeId)]);
         let teststr = "childs:[";
@@ -746,13 +746,13 @@
         // console.log(teststr+"]")
 
         childNodes.forEach(node=>{
-            console.log("node.id:",node.id)
+            // console.log("node.id:",node.id)
             // console.log("nodeId!=nodesInCycle[0] && node.id!=nodesInCycle[1]",nodeId!=nodesInCycle[0] && node.id!=nodesInCycle[1]);
             // console.log("nodeId==nodesInCycle[0]&&node.id!=nodesInCycle[1]",nodeId==nodesInCycle[0]&&node.id!=nodesInCycle[1]);
             
             // console.log("node.id==nodesInCycle[1]",node.id==nodesInCycle[1]);
             if((!searchPathStack.includes(nodeId)&&searchPathStack.includes(node.id)) || (searchPathStack.includes(nodeId)&&!searchPathStack.includes(node.id))||(!searchPathStack.includes(nodeId)&&!searchPathStack.includes(node.id))){ //スタートの隣のゴールではない
-                console.log("スタート横のゴールではないね");
+                // console.log("スタート横のゴールではないね");
                 // console.log("!visitedIsConnected1[getNodeIndex(graph, node.id)]",!visitedIsConnected1[getNodeIndex(graph, node.id)]);
                 // console.log("node.id!=beforeNodeId",node.id!=beforeNodeId);
                 // console.log("!searchPathStack.includes(node.id)",!searchPathStack.includes(node.id));
@@ -760,13 +760,13 @@
                     && node.id!=beforeNodeId  //親ノードではない
                     && (!searchPathStack.includes(node.id))) { //サーチパスにない
                     //子供を訪問 親には訪問しない
-                    console.log("未訪問かつ親じゃないかつパスに含まれないね");
+                    // console.log("未訪問かつ親じゃないかつパスに含まれないね");
                     connectedDfs(node.id, graph, nodeId, visitNum+1, nodesInCycle);
                 } else if(searchPathStack.includes(node.id)
                     && node.id!=nodesInCycle[0] //ゴールである 
                     && node.id!=beforeNodeId) { //親ノードではない
-                        console.log("ゴールではなく親ではないね");
-                        console.log("やぁ",node.id,nodesInCycle[1],beforeNodeId)
+                        // console.log("ゴールではなく親ではないね");
+                        // console.log("やぁ",node.id,nodesInCycle[1],beforeNodeId)
                     isCycle=true;
                 }
                 
