@@ -515,11 +515,11 @@
     }
 
     function doTestCheckUnCactusGraph(){
-        for(let i=0;i<100;i++){
+        do{
             redrawRandomUnCactusGraph();
             doCheckCactusGraph();
             if(isCactus)break;
-        }
+        }while(true);
     }
 
     let originNodes = [];
