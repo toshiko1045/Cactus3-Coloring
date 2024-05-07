@@ -751,6 +751,7 @@
             
             // console.log("node.id==nodesInCycle[1]",node.id==nodesInCycle[1]);
             if((!searchPathStack.includes(nodeId)&&searchPathStack.includes(node.id)) || (searchPathStack.includes(nodeId)&&!searchPathStack.includes(node.id))||(!searchPathStack.includes(nodeId)&&!searchPathStack.includes(node.id))){ //スタートの隣のゴールではない
+                console.log("スタート横のゴールではないね");
                 // console.log("!visitedIsConnected1[getNodeIndex(graph, node.id)]",!visitedIsConnected1[getNodeIndex(graph, node.id)]);
                 // console.log("node.id!=beforeNodeId",node.id!=beforeNodeId);
                 // console.log("!searchPathStack.includes(node.id)",!searchPathStack.includes(node.id));
@@ -758,9 +759,11 @@
                     && node.id!=beforeNodeId  //親ノードではない
                     && (!searchPathStack.includes(node.id))) { //サーチパスにない
                     //子供を訪問 親には訪問しない
+                    console.log("未訪問かつ親じゃないかつパスに含まれないね");
                     connectedDfs(node.id, graph, nodeId, visitNum+1, nodesInCycle);
                 } else if(node.id==nodesInCycle[1] //ゴールである 
                     && node.id!=beforeNodeId) { //親ノードではない
+                        console.log("ゴールではなく親ではないね");
                         console.log("やぁ",node.id,nodesInCycle[1],beforeNodeId)
                     isCycle=true;
                 }
