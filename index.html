@@ -28,8 +28,8 @@
 <input type="button" value="test check uncactus graph" onclick="doTestCheckUnCactusGraph()">
 <input type="button" value="do minimize" onclick="redrawMinimumGraph()">
 <input type="button" value="coloring graph" onclick="doColoring()">
-<input type="number" value=4 id="graphSize">
-<input type="number" value=4 id="graphComplex">
+<input type="number" value=10 id="graphSize">
+<input type="number" value=10 id="graphComplex">
 <!-- <textarea id="fileContent" cols="40" rows="8">5 5
 1 2
 1 3
@@ -322,7 +322,7 @@
     }
 
     function makeRandomCycleFromPath(node1, node2, cycleLength){
-        // console.log("pathFrom:node1:"+node1.id+",node2:"+node2.id);
+       
         let nextNode = node1;
         let cnt = 0;
         let randomCycleLength = Math.floor(Math.random()*(cycleLength-3)+3);
@@ -440,23 +440,14 @@
                 let isTriangle = false;
                 for(let j=0;j<minEdges.length;j++){//三角形を成すか判定
                     if((minEdges[j].start==nodeId1&&minEdges[j].end==nodeId2)||(minEdges[j].start==nodeId2&&minEdges[j].end==nodeId1)) { //nodeとnodeId1とnodeId2で三角形を成すならば
-                        // console.log("edge:"+minEdges[j].start+"->"+minEdges[j].end+", nodeId=["+nodeId1+","+nodeId2+"],nodeID:"+minNodes[i].id);
+                       
                         isTriangle = true;
                         break; //三角形ならば次のノードへ
                     }
                 }
                 if(!isTriangle){//三角形でないならば
 
-                    // let teststr = "前minNodes:[";
-                    // minNodes.forEach(node=>{
-                    //     teststr+=node.id + " ";
-                    // })
-                    // console.log(teststr+"]");
-                    // teststr = "前minEdges:[";
-                    // minEdges.forEach(edge=>{
-                    //     teststr += "(" + edge.start + ","+edge.end + ")";
-                    // })
-                    // console.log(teststr+"]");
+                    
 
 
                     minEdges = removeEdgesById(minEdges, minNodes[i].id);//削除処理
@@ -464,16 +455,6 @@
                     minEdges.push({start:nodeId1, end:nodeId2});//エッジ追加
                     isFind = true;
 
-                    // teststr = "後minNodes:[";
-                    // minNodes.forEach(node=>{
-                    //     teststr+=node.id + " ";
-                    // })
-                    // console.log(teststr+"]");
-                    // teststr = "後minEdges:[";
-                    // minEdges.forEach(edge=>{
-                    //     teststr += "(" + edge.start + ","+edge.end + ")";
-                    // })
-                    // console.log(teststr+"]");
                 }
             }
             if(isFind){//削除が行われたならば
@@ -507,11 +488,11 @@
 
     // cactus check
     function doTestCheckCactusGraph(){
-        for(let i=0;i<100;i++){
+        do{
             redrawRandomCactusGraph();
             doCheckCactusGraph();
             if(!isCactus)break;
-        }
+        }while(true);
     }
 
     function doTestCheckUnCactusGraph(){
@@ -527,39 +508,11 @@
     function doCheckCactusGraph(){
         doMinimizeOnIsCactusGraph();
         
-        let teststr = "minNodes:[";
-        minNodes.forEach(node=>{
-            teststr+=node.id + " ";
-        })
-        // console.log(teststr+"]");
-        // teststr = "oriEdges:[";
-        // Edges.forEach(edge=>{
-        //     teststr += "(" + edge.start + ","+edge.end + ")";
-        // })
-        // console.log(teststr+"]");
-        teststr = "minEdges:[";
-        minEdges.forEach(edge=>{
-            teststr += "(" + edge.start + ","+edge.end + ")";
-        })
-        // console.log(teststr+"]");
-        
         originNodes = getNodesCopy(Nodes);
         originEdges = getEdgesCopy(Edges);
         Nodes = getNodesCopy(minNodes);
         Edges = getEdgesCopy(minEdges);
 
-        // teststr = "Nodes:[";
-        // minNodes.forEach(node=>{
-        //     teststr+=node.id + " ";
-        // })
-        // console.log(teststr+"]");
-        // teststr = "Edges:[";
-        // minEdges.forEach(edge=>{
-        //     teststr += "(" + edge.start + ","+edge.end + ")";
-        // })
-        // console.log(teststr+"]");
-
-        // console.log("docheck iscycle:",isCycle)
         isCycle = false;
         isCactus = true;
         separatedGraphs = [getNodesCopy(Nodes)];
@@ -574,74 +527,120 @@
 
     let separatedGraphs = [];
     let lastSeparatedGraphs = [];
+    let jointNodes = [] //関節点を格納
     let isCactus = true;
-    function isCactusGraph(nodes){
-        lastSeparatedGraphs = getGraphsCopy(separatedGraphs); // 前のグラフを保存(エッジ数えのため)
-        separatedGraphs = getSeparatedGraphs(nodes); // 関節点を削除し分割されたグラフの集合
-
-        let teststr = "graphs:[";
-        separatedGraphs.forEach(graph=>{
-            teststr += "[";
-            graph.forEach(node=>{
-                teststr += node.id + " ";
-            })  
-            teststr += "]";
-        })
-        // console.log(teststr + "]");
-        // console.log("for外isCycle:",isCycle);
-        for(let i=0;i<separatedGraphs.length;i++){// 分割されたそれぞれのグラフに対して
-            let deletedEdgeNum = getDeletedEdgeNum(separatedGraphs[i]); //グラフからエッジが何本消えたか
-            if(deletedEdgeNum>=3) { // 消えたエッジが3本以上の時
-                // console.log("3")
-                isCactus = false;
-            }else if(deletedEdgeNum===2){ //消えたエッジが2本の時
-                // console.log("2");
-                visitedIsConnected1 = [];
-                visitedIsConnected2 = [];
-                separatedGraphs[i].forEach(node=>{visitedIsConnected1.push(false);visitedIsConnected2.push(false);})
-                let edgeDeletedNodeIds = getEdgeDeleted2NodeIds(separatedGraphs[i]);
-                // console.log("edgeDeletedNodeIds:",edgeDeletedNodeIds);
-                
-                getPathFromNodeToNode(separatedGraphs[i][getNodeIndex(separatedGraphs[i], edgeDeletedNodeIds[0])], 
-                                    separatedGraphs[i][getNodeIndex(separatedGraphs[i], edgeDeletedNodeIds[1])], 
-                                    separatedGraphs[i])
-                // console.log("searchPathStack:",searchPathStack)
-                if(separatedGraphs[i].length>2){
-                    // console.log("2じゃないよ");
-                    //searchPathStack内の任意の2頂点が閉路の一部であるか調べる
-                    for(let j=0;j<searchPathStack.length-1;j++){
-                        for(let k=j+1;k<searchPathStack.length;k++){
-                            visitedNodeIdStack = [];
-                            isCycle = false;
-                            // console.log("connectesdDFSだよ")
-                            // console.log("start,goal",[searchPathStack[j], searchPathStack[k]])
-                            connectedDfs(searchPathStack[j], 
-                                        separatedGraphs[i], 
+    function isCactusGraph(nodes){ //全ての関節点を取得し, 各関節点除去時に, 3なら非カクタス, 2なら閉路判定, 1ならパス
+        //まず関節点配列の作成
+        makeJointNodes(nodes);
+        //各関節点に対して処理
+        for(let jointNodeIndex=0;jointNodeIndex<jointNodes.length;jointNodeIndex++){
+            let nowJointNode = jointNodes[jointNodeIndex] //処理を行う関節点
+            //関節点を削除して分割されたグラフと削除されたエッジの数とエッジが削除されたノードを取得
+            let jointNodeDeletedNodes = getNodeDeletedNodes(nodes, nowJointNode);//関節点を削除したノード配列
+            makeSeparatedNodes(jointNodeDeletedNodes) //分割されたグラフを作成
+            //各グラフに対して, 消えたエッジの数に応じた処理を実行
+            for(let separatedGraphIndex=0;separatedGraphIndex<separatedGraphs.length;separatedGraphIndex++){//各グラフに対して
+                let deletedEdgeNum = getDeletedEdgeNum(separatedGraphs[separatedGraphIndex], nodes); //グラフからエッジが何本消えたか
+                if(deletedEdgeNum>=3) { // 消えたエッジが3本以上の時
+                    isCactus = false;
+                }else if(deletedEdgeNum===2){ //消えたエッジが2本の時
+                    let edgeDeletedNodes = getEdgeDeleted2NodeIds(separatedGraphs[separatedGraphIndex], nodes);
+                    visitedIsConnected1 = [];
+                    visitedIsConnected2 = [];
+                    separatedGraphs[separatedGraphIndex].forEach(node=>{visitedIsConnected1.push(false);visitedIsConnected2.push(false);});
+                    getPathFromNodeToNode(edgeDeletedNodes[0], edgeDeletedNodes[1], separatedGraphs[separatedGraphIndex]);
+                    if(separatedGraphs[separatedGraphIndex].length>2){
+                        for(let searchPathStackIndex1=0;searchPathStackIndex1<searchPathStack.length-1;searchPathStackIndex1++){
+                            for(let searchPathStackIndex2=searchPathStackIndex1+1;searchPathStackIndex2<searchPathStack.length;searchPathStackIndex2++){
+                                isCycle = false;
+                                connectedDfs(searchPathStack[searchPathStackIndex1], 
+                                        separatedGraphs[separatedGraphIndex], 
                                         -1, 
                                         1, 
-                                        [searchPathStack[j], searchPathStack[k]]);
-                            if(isCycle) {
-                                // console.log("stack:", searchPathStack);
-                                // console.log("separ:", separatedGraphs[i])
-                                // console.log("edges:", Edges);
+                                        [searchPathStack[searchPathStackIndex1], searchPathStack[searchPathStackIndex2]]);
+                                if(isCycle) {
+                                    isCactus = false;
+                                    break;
+                                }
+                            }
+                            if(isCycle){
                                 break;
                             }
                         }
-                        if(isCycle) break;
                     }
                 }
-                // console.log("isCycle:",isCycle);
-                if(isCycle){// エッジが消えた2つのノードが閉路の一部である時
-                    // console.log("閉路だよ")
-                    isCactus=false;
-                }else{
-                    isCactusGraph(separatedGraphs[i]); //再帰呼び出し
+                if(!isCactus){
+                    break;
                 }
-            } else if(separatedGraphs[i].length>2){ //消えたエッジが1本の時
-                isCactusGraph(separatedGraphs[i]); //再帰呼び出し
+            }
+            if(!isCactus){
+                break;
             }
         }
-        return true;
+    }
+
+
+
+    let isVisited = []; //再帰で参照し続けるのでグローバル dfs
+    let lowArray = []; //再帰で参照し続けるのでグローバル dfs
+    let ordArray = []; //再帰で参照し続けるのでグローバル dfs
+    let ordNum = 1; //再帰で参照し続けるのでグローバル dfs
+    let dfsTree = []; //{parent:id, children:[id1, ... idk]} dfs木を隣接リストで作る
+    function makeJointNodes(nodes){ //nodesの関節点を作成
+        isVisited = [];
+        lowArray = [];
+        ordArray = [];
+        nodes.forEach(node=>{
+            isVisited.push(false);
+            lowArray.push(-1);
+            ordArray.push(-1);
+            dfsTree.push({parent:node.id, children:[]});
+        });
+        ordNum = 1;
+        //ord, low, dfsTreeを作成
+        makeOrdAndLowDfs(nodes, nodes[0], nodes[0]);
+        isVisited = [];
+        nodes.forEach(node=>{isVisited.push(false)});
+       
+        //関節点の配列を作成
+        makeJointNodesDfs(nodes, nodes[0], true);
+    }
+
+    function makeJointNodesDfs(nodes, visitingNode, isStart){//jointNodesに関節点を格納
+        let visitingNodeIndex = getNodeIndex(nodes, visitingNode.id); //nodes上のインデックス取得
+        isVisited[visitingNodeIndex] = true; //訪問済にする
+        let neighborNodes = getNeighborNodes(visitingNode, nodes); //隣接ノードを取得
+        if(isStart){//ルートの時
+            // if(neighborNodes.length>=2) jointNodes.push(visitingNode); //子が2つ以上なら関節点
+        }
+        neighborNodes.forEach(neighborNode=>{//各隣接ノードに対して
+            let neighborIndex = getNodeIndex(nodes, neighborNode.id); //隣接ノードのインデックス
+            if(ordArray[visitingNodeIndex]<=lowArray[neighborIndex] && !isIdInNodes(jointNodes, visitingNode.id)) jointNodes.push(visitingNode); //関節点か確認
+            if(!isVisited[neighborIndex]){ //未訪問ならば
+                makeJointNodesDfs(nodes, neighborNode, false);
+            }
+        })
+    }
+
+    function makeOrdAndLowDfs(nodes, visitingNode, beforeNode){  //ord, low, dfsTreeを作成
+        isVisited[getNodeIndex(nodes, visitingNode.id)] = true;
+        // 訪問時操作開始
+        let visitingIndex = getNodeIndex(nodes, visitingNode.id);
+        ordArray[visitingIndex] = ordNum;
+        lowArray[visitingIndex] = ordNum;
+        ordNum += 1;
+        // 訪問時操作終了
+        let neighborNodes = getNodeDeletedNodes(getNeighborNodes(visitingNode, nodes), beforeNode);
+        neighborNodes.forEach(node => {
+            let nextIndex = getNodeIndex(nodes, node.id);
+            if(!isVisited[nextIndex] && nextIndex!==-1) {
+                dfsTree.forEach((t,i)=>{if(t.parent==visitingNode.id)dfsTree[i].children.push(node.id);});
+                dfs(nodes, node, visitingNode);
+                if(lowArray[visitingIndex] > lowArray[nextIndex]) lowArray[visitingIndex] = lowArray[nextIndex];
+            } else { //行こうとした先が訪問済だった時
+                if(lowArray[visitingIndex]>ordArray[nextIndex]) lowArray[visitingIndex] = ordArray[nextIndex];
+            }
+        })
     }
 
     let searchPathStack = []; //パスを格納
@@ -657,7 +656,7 @@
         prevNodes[getNodeIndex(graph, startNode.id)] = -1; 
         visitedSearchPathQueue.push(startNode);
         isFindPath = false;
-        // console.log("start:"+startNode.id+",goal:"+goalNode.id);
+    
         searchPathBfs(startNode, graph, goalNode);
         
         restoreBfsPath(graph, goalNode);
@@ -665,10 +664,9 @@
 
     function restoreBfsPath(graph, goalNode){
         let nowNodeIndex = getNodeIndex(graph, goalNode.id); 
-        // console.log(goalNode, graph, nowNodeIndex)
-        // console.log(prevNodes);
+       
         do{
-            // console.log(searchPathStack);
+          
             searchPathStack.push(graph[nowNodeIndex].id);
             if(prevNodes[nowNodeIndex]==-1) break;
             nowNodeIndex = prevNodes[nowNodeIndex];
@@ -695,23 +693,22 @@
         }while(visitedSearchPathQueue.length>0)
     }
 
-    function getEdgeDeleted2NodeIds(graph){
-        let resNodeIds = [];
-        let lastGraph = getLastGraph(graph[0]);
-        graph.forEach(node=>{
+    function getEdgeDeleted2NodeIds(nowGraph, lastGraph){
+        let resNodes = [];
+        nowGraph.forEach(node=>{
             Edges.forEach(edge=>{
-                if(node.id==edge.start){
-                    if(isIdInNodes(lastGraph, edge.end) && !isIdInNodes(graph, edge.end)){//前のグラフにあって今のグラフにないノードならば
-                        resNodeIds.push(edge.start);
+                if(node.id==edge.start){ //今のグラフ上のあるノードとエッジの始点が一致したなら
+                    if(isIdInNodes(lastGraph, edge.end) && !isIdInNodes(nowGraph, edge.end)){//前のグラフにあって今のグラフにないノードならば関節点であるため
+                        resNodes.push(nowGraph[getNodeIndex(nowGraph,edge.start)].deepCopy());
                     }
                 }else if(node.id==edge.end){
-                    if(isIdInNodes(lastGraph, edge.start) && !isIdInNodes(graph, edge.start)){//前のグラフにあって今のグラフにないノードならば
-                        resNodeIds.push(edge.end);
+                    if(isIdInNodes(lastGraph, edge.start) && !isIdInNodes(nowGraph, edge.start)){//前のグラフにあって今のグラフにないノードならば
+                        resNodes.push(nowGraph[getNodeIndex(nowGraph,edge.end)].deepCopy());
                     }
                 }
             })
         })
-        return resNodeIds;
+        return resNodes;
     }
 
     function getAddedNodes(nodes1, nodes2){
@@ -728,15 +725,13 @@
         return nodes1;
     }
     
-
     let visitedIsConnected1 = []; 
     let isCycle = false;
     //separatedGraphs[i]-searchPathStack+searchPathStack[j]+searchPathStack[j]の中でsearchPathStack[j]からsearchPathStack[j]に到達できるか
     function connectedDfs(nodeId, graph, beforeNodeId, visitNum, nodesInCycle){ 
         let visitingIndex = getNodeIndex(graph, nodeId);
         visitedIsConnected1[visitingIndex] = true;
-        // console.log("visitID:",nodeId);
-        // console.log("beforeID:",beforeNodeId, getNodeIndex(graph, beforeNodeId))
+       
         let childNodes = getNeighborNodes(graph[visitingIndex], graph);
         if(visitNum>=2) childNodes = getNodeDeletedNodes(childNodes, graph[getNodeIndex(graph, beforeNodeId)]);
         let teststr = "childs:[";
@@ -746,27 +741,19 @@
         // console.log(teststr+"]")
 
         childNodes.forEach(node=>{
-            // console.log("node.id:",node.id)
-            // console.log("nodeId!=nodesInCycle[0] && node.id!=nodesInCycle[1]",nodeId!=nodesInCycle[0] && node.id!=nodesInCycle[1]);
-            // console.log("nodeId==nodesInCycle[0]&&node.id!=nodesInCycle[1]",nodeId==nodesInCycle[0]&&node.id!=nodesInCycle[1]);
             
-            // console.log("node.id==nodesInCycle[1]",node.id==nodesInCycle[1]);
             if((!searchPathStack.includes(nodeId)&&searchPathStack.includes(node.id)) || (searchPathStack.includes(nodeId)&&!searchPathStack.includes(node.id))||(!searchPathStack.includes(nodeId)&&!searchPathStack.includes(node.id))){ //スタートの隣のゴールではない
-                // console.log("スタート横のゴールではないね");
-                // console.log("!visitedIsConnected1[getNodeIndex(graph, node.id)]",!visitedIsConnected1[getNodeIndex(graph, node.id)]);
-                // console.log("node.id!=beforeNodeId",node.id!=beforeNodeId);
-                // console.log("!searchPathStack.includes(node.id)",!searchPathStack.includes(node.id));
+                
                 if(!visitedIsConnected1[getNodeIndex(graph, node.id)] //未訪問である
                     && node.id!=beforeNodeId  //親ノードではない
                     && (!searchPathStack.includes(node.id))) { //サーチパスにない
                     //子供を訪問 親には訪問しない
-                    // console.log("未訪問かつ親じゃないかつパスに含まれないね");
+                   
                     connectedDfs(node.id, graph, nodeId, visitNum+1, nodesInCycle);
                 } else if(searchPathStack.includes(node.id)
                     && node.id!=nodesInCycle[0] //ゴールである 
                     && node.id!=beforeNodeId) { //親ノードではない
-                        // console.log("ゴールではなく親ではないね");
-                        // console.log("やぁ",node.id,nodesInCycle[1],beforeNodeId)
+               
                     isCycle=true;
                 }
                 
@@ -774,19 +761,16 @@
         })
     }
 
-
-
-    function getDeletedEdgeNum(nodes){//分離前(直前)のグラフと比較
+    function getDeletedEdgeNum(nowNodes, lastNodes){//分離前(直前)のグラフと比較
         let cnt = 0;
-        let lastGraph = getLastGraph(nodes[0]); // 今のグラフが含まれていた前のグラフを取得
-        nodes.forEach(node=>{//部分グラフの各ノードについて
+        nowNodes.forEach(node=>{//部分グラフの各ノードについて
             Edges.forEach(edge=>{
                 if(node.id===edge.start){
-                    if(isIdInNodes(lastGraph, edge.end) && !isIdInNodes(nodes, edge.end)) {
+                    if(isIdInNodes(lastNodes, edge.end) && !isIdInNodes(nowNodes, edge.end)) {
                         cnt++;
                     }
                 }else if(node.id===edge.end){
-                    if(isIdInNodes(lastGraph, edge.start) && !isIdInNodes(nodes, edge.start)) {
+                    if(isIdInNodes(lastNodes, edge.start) && !isIdInNodes(nowNodes, edge.start)) {
                         cnt++;
                     }
                 }
@@ -805,11 +789,7 @@
         return resGraph;
     }
 
-    let isVisited = []; //再帰で参照し続けるのでグローバル dfs
-    let lowArray = []; //再帰で参照し続けるのでグローバル dfs
-    let ordArray = []; //再帰で参照し続けるのでグローバル dfs
-    let ordNum = 1; //再帰で参照し続けるのでグローバル dfs
-    let dfsTree = []; //{parent:id, children:[id1, ... idk]} dfs木を隣接リストで作る
+    
     // let separatedGraphs = [];// 分割結果を格納する
     let deletedNodes = []; //ノードを削除したあとのノード集合
     function getSeparatedGraphs(nodes){//nodesの関節点を削除し, node配列の配列を返す 
@@ -838,16 +818,15 @@
         return separatedGraphs;
     }
 
-    function makeSeparatedNodes(){
+    function makeSeparatedNodes(nodes){ //nodesを分割してseparatedGraphsに格納
+        separatedGraphs = []//初期化
         isVisited = [];// 初期化
-        deletedNodes.forEach(node=>{
-            isVisited.push(false);
-        })
-        let beginNode = deletedNodes[0];
-        deletedNodes.forEach((node,i)=>{
+        nodes.forEach(node=>{isVisited.push(false);})
+        let beginNode = nodes[0];
+        nodes.forEach((node,i)=>{
             if(!isVisited[i]) {
                 separatedGraphs.push([]); //このグラフを記録する配列を追加
-                unionDfs(deletedNodes, node); //訪問済で無ければDFS
+                unionDfs(nodes, node); //訪問済で無ければDFS
             }
         })
     }
@@ -967,12 +946,13 @@
     }
 
     function getNodeDeletedNodes(nodes, node){
+        let resNodes = [];
         for(let i=0;i<nodes.length;i++){
-            if(nodes[i].id==node.id){
-                nodes.splice(i,1);
+            if(nodes[i].id!=node.id){
+                resNodes.push(nodes[i].deepCopy());
             }
         }
-        return nodes;
+        return resNodes;
     }
 
     // coloring
