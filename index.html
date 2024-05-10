@@ -53,8 +53,21 @@
     let nodeIdNow = 0;
     let Color = [0,1,2];//赤, 青, 黃
     let colorName = ["red", "blue", "yellow"]
+    let beforeMinBodySize = 0;
+    let BOUNCE = 0.9;
+    let FRICTION = 0.1;
+    let SPRINGLENGTH = 150;
+    let COULOMB = 1000;
+    let GRAVITY = 0.1;
 
     let visitTime = {};
+
+    function doAtFirst(){
+        beforeMinBodySize = Math.min(document.body.clientHeight,document.body.clientWidth);
+        resizeWindow();
+        initialize();
+        setInterval(makeBalancedGraph, 50);
+    }
 
     function initialize(){
         Nodes = [];
@@ -71,8 +84,9 @@
         let minSize = Math.min(document.body.clientHeight,document.body.clientWidth);
         canvas.width = minSize*3/4;
         canvas.height = minSize*3/4;
-        circleSize = minSize/20;
+        circleSize = minSize/40;
         redrawCanvas();
+        beforeMinBodySize = minSize; //描画後に今のcanvasのサイズを保存
     }
 
     function getCanvasSize(){
@@ -80,6 +94,7 @@
     }
 
     function drawNode(x, y, c, id) { //円を描写
+        let canvasSize = Math.min(document.body.clientHeight,document.body.clientWidth);
         ctx.beginPath();
         ctx.arc(x, y, circleSize, 0, Math.PI * 2);
         ctx.fillStyle = colorName[c];
@@ -99,7 +114,7 @@
         let xj = Nodes[NodeJ].x;
         let yj = Nodes[NodeJ].y;
         drawLine(xi, yi, xj, yj);
-        drawSquare((xi+xj)/2-5, (yi+yj)/2-5, 10);
+        // drawSquare((xi+xj)/2-5, (yi+yj)/2-5, 10);
       
     }
 
@@ -127,9 +142,14 @@
 
     // Function to redraw all Nodes
     function redrawNodes() {
-        Nodes.forEach(Node => {
-            drawNode(Node.x, Node.y, Node.c, Node.id);
-        });
+        for(let i=0;i<Nodes.length;i++){
+            if(Nodes[i].x<=0) Nodes[i].x = 0;
+            else if(Nodes[i].x>=beforeMinBodySize*3/4) Nodes[i].x = beforeMinBodySize*3/4;
+            if(Nodes[i].y<=0) Nodes[i].y = 0;
+            else if(Nodes[i].y>=beforeMinBodySize*3/4) Nodes[i].y = beforeMinBodySize*3/4;
+            drawNode(Nodes[i].x, Nodes[i].y, Nodes[i].c, Nodes[i].id);
+        }
+        // console.log(Nodes[0])
     }
     function redrawEdges(){
         Edges.forEach(Edge => {
@@ -138,9 +158,75 @@
     }
 
     function redrawCanvas(){
+        // ノード座標の更新
+        let nowMinBodySize = Math.min(document.body.clientHeight,document.body.clientWidth);
+        for(let i=0;i<Nodes.length;i++){
+            Nodes[i].x = Nodes[i].x * nowMinBodySize / beforeMinBodySize;
+            Nodes[i].y = Nodes[i].y * nowMinBodySize / beforeMinBodySize;
+        }
         clearCanvas();
         redrawEdges();
         redrawNodes();
+    }
+
+    function makeBalancedGraph(){
+        for(let i=0;i<Nodes.length;i++){
+            let fx = 0;
+            let fy = 0;
+            Nodes.forEach(colombedNode=>{
+                if(colombedNode.id!=Nodes[i].id){
+                    let dstX = Nodes[i].x - colombedNode.x;
+                    let dstY = Nodes[i].y - colombedNode.y;
+                    let dstSQRT = Math.sqrt(dstX * dstX + dstY * dstY);
+                    let f = COULOMB/(dstSQRT*dstSQRT) //クーロン力
+                    fx += f * dstX/dstSQRT;
+                    fy += f * dstY/dstSQRT;
+                }
+            })
+
+            Nodes.forEach(frictionedNode=>{
+                if(frictionedNode.id!=Nodes[i].id && isNeighbor(frictionedNode, Nodes[i])){
+                    let dstX = frictionedNode.x - Nodes[i].x;
+                    let dstY = frictionedNode.y - Nodes[i].y;
+                    let dstSQRT = Math.sqrt(dstX * dstX + dstY * dstY);
+                    let f = BOUNCE * (dstSQRT - SPRINGLENGTH); //フックの法則による力
+                    fx += f * dstX/dstSQRT;
+                    fy += f * dstY/dstSQRT;
+                }
+            })
+
+            Nodes[i].vx = (Nodes[i].vx + fx) * FRICTION;
+            Nodes[i].vy = (Nodes[i].vy + fy) * FRICTION;
+
+            if(Nodes[i].x+Nodes[i].vx<=0){ //左の壁に当たる場合
+                Nodes[i].x = 0;
+                Nodes[i].vx = 0;
+            }else if(Nodes[i].x+Nodes[i].vx>=beforeMinBodySize){ //右の壁に当たる場合
+                Nodes[i].x = beforeMinBodySize;
+                Nodes[i].vx = 0;
+            }else{
+                Nodes[i].x += Nodes[i].vx;
+            }
+
+            if(Nodes[i].y+Nodes[i].vy<=0){ //上の壁に当たる場合
+                Nodes[i].y = 0;
+                Nodes[i].vy = 0;
+            }else if(Nodes[i].y+Nodes[i].vy>=beforeMinBodySize){ //下の壁に当たる場合
+                Nodes[i].y = beforeMinBodySize;
+                Nodes[i].vy = 0;
+            }else{
+                Nodes[i].y += Nodes[i].vy;
+            }
+        }
+        redrawCanvas();
+    }
+
+    function isNeighbor(node1, node2){
+        for(let i=0;i<Edges.length;i++){
+            if((Edges[i].start == node1.id && Edges[i].end   == node2.id)||
+               (Edges[i].end   == node1.id && Edges[i].start == node2.id)) return true;
+        }
+        return false;
     }
 
     function removeEdgesById(edges, id){
@@ -237,7 +323,7 @@
             clickedNodeId = -1;
             isDrawingEdge = false;
         } else {
-            Nodes.push(new Node(x, y, nodeIdNow, nodeIdNow++, 0)); // Add a new Node
+            Nodes.push(new Node(x, y, nodeIdNow, nodeIdNow++, 0, 0, 0)); // Add a new Node
         }
 
         redrawCanvas();
@@ -268,7 +354,7 @@
     canvas.addEventListener('click', handleClick);
     canvas.addEventListener('dblclick', handleDoubleClick);
     canvas.addEventListener('mousemove', handleDrag);
-    window.addEventListener("DOMContentLoaded", resizeWindow);
+    window.addEventListener("DOMContentLoaded", doAtFirst);
     window.addEventListener("resize", resizeWindow);
 
     // make graph
@@ -293,7 +379,7 @@
         Edges = [];
         // console.log("start make cactus");
         let camvasSize = getCanvasSize();
-        let beginNode = new Node(Math.random()*camvasSize, Math.random()*camvasSize, nodeIdNow, nodeIdNow++, 0); //開始ノード作成
+        let beginNode = new Node(Math.random()*camvasSize, Math.random()*camvasSize, nodeIdNow, nodeIdNow++, 0, 0, 0); //開始ノード作成
         Nodes.push(beginNode);//ノードとして登録
         for(let i=0;i<graphSize;i++){
             let nowNode = Nodes[Math.floor(Math.random()*Nodes.length)];//ノード選択
@@ -390,7 +476,7 @@
 
     function getRandomNode(){
         let camvasSize = getCanvasSize();
-        return new Node(Math.random()*camvasSize, Math.random()*camvasSize, nodeIdNow, nodeIdNow++, 0);
+        return new Node(Math.random()*camvasSize, Math.random()*camvasSize, nodeIdNow, nodeIdNow++, 0, 0, 0);
     }
 
     function isIdInNodes(nodes, id){
@@ -664,9 +750,7 @@
 
     function restoreBfsPath(graph, goalNode){
         let nowNodeIndex = getNodeIndex(graph, goalNode.id); 
-       
         do{
-          
             searchPathStack.push(graph[nowNodeIndex].id);
             if(prevNodes[nowNodeIndex]==-1) break;
             nowNodeIndex = prevNodes[nowNodeIndex];
@@ -739,9 +823,7 @@
             teststr+=node.id+" ";
         })
         // console.log(teststr+"]")
-
         childNodes.forEach(node=>{
-            
             if((!searchPathStack.includes(nodeId)&&searchPathStack.includes(node.id)) || (searchPathStack.includes(nodeId)&&!searchPathStack.includes(node.id))||(!searchPathStack.includes(nodeId)&&!searchPathStack.includes(node.id))){ //スタートの隣のゴールではない
                 
                 if(!visitedIsConnected1[getNodeIndex(graph, node.id)] //未訪問である
@@ -756,7 +838,6 @@
                
                     isCycle=true;
                 }
-                
             }
         })
     }
@@ -1079,16 +1160,18 @@
     }
 
     class Node{
-        constructor(x,y,id,p,c){
+        constructor(x,y,id,p,c,vx,vy){
             this.x = x; 
             this.y = y;
             this.id = id; //ノード識別子
             this.p = p; //優先度決める値 
             this.c = c; //色 
+            this.vx = vx;
+            this.vy = vy;
         }
         
         deepCopy(){
-            return new Node(this.x, this.y, this.id, this.p, this.c);
+            return new Node(this.x, this.y, this.id, this.p, this.c, this.vx, this.vy);
         }
     }
 </script>
