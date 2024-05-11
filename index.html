@@ -28,8 +28,9 @@
 <input type="button" value="test check uncactus graph" onclick="doTestCheckUnCactusGraph()">
 <input type="button" value="do minimize" onclick="redrawMinimumGraph()">
 <input type="button" value="coloring graph" onclick="doColoring()">
-<input type="number" value=10 id="graphSize">
-<input type="number" value=10 id="graphComplex">
+<input type="number" value=15 id="graphSize">
+<input type="number" value=15 id="graphComplex">
+<input type="range" min="1" max="100" value="100" id="circleSize">
 <!-- <textarea id="fileContent" cols="40" rows="8">5 5
 1 2
 1 3
@@ -54,11 +55,12 @@
     let Color = [0,1,2];//赤, 青, 黃
     let colorName = ["red", "blue", "yellow"]
     let beforeMinBodySize = 0;
+    let changeCircleSize = 100;
     let BOUNCE = 0.9;
-    let FRICTION = 0.2;
+    let FRICTION = 0.3;
     let SPRINGLENGTH = circleSize*10;
     let COULOMB = 5000;
-    let GRAVITY = 0.1;
+    let GRAVITY = 0.00002;
 
     let visitTime = {};
 
@@ -97,14 +99,18 @@
     function drawNode(x, y, c, id) { //円を描写
         let canvasSize = Math.min(document.body.clientHeight,document.body.clientWidth);
         ctx.beginPath();
-        ctx.arc(x, y, circleSize, 0, Math.PI * 2);
+        ctx.arc(x, y, circleSize*changeCircleSize/100, 0, Math.PI * 2);
         ctx.fillStyle = colorName[c];
         ctx.fill();
         ctx.strokeStyle = 'black'; 
         ctx.stroke(); 
-        ctx.fillStyle = 'black';
-        ctx.fillText(id, x, y);
+        // ctx.fillStyle = 'black';
+        // ctx.fillText(id, x, y);
         ctx.closePath();
+    }
+
+    function setCircleSize(){
+        changeCircleSize = document.getElementById("circleSize").value;
     }
 
     function drawEdge(i, j){// idがi,jのノード間にエッジ
@@ -144,10 +150,23 @@
     // Function to redraw all Nodes
     function redrawNodes() {
         for(let i=0;i<Nodes.length;i++){
-            if(Nodes[i].x<=0) Nodes[i].x = 0;
-            else if(Nodes[i].x>=beforeMinBodySize*3/4) Nodes[i].x = beforeMinBodySize*3/4;
-            if(Nodes[i].y<=0) Nodes[i].y = 0;
-            else if(Nodes[i].y>=beforeMinBodySize*3/4) Nodes[i].y = beforeMinBodySize*3/4;
+            if(Nodes[i].x<=0) Nodes[i].x = 0; //左の壁
+            else if(Nodes[i].x>=beforeMinBodySize*3/4) Nodes[i].x = beforeMinBodySize*3/4; //右の壁
+            if(Nodes[i].y<=0) Nodes[i].y = 0; //上の壁
+            else if(Nodes[i].y>=beforeMinBodySize*3/4) Nodes[i].y = beforeMinBodySize*3/4; // 下の壁
+
+            // Nodes.forEach(node=>{
+            //     if(node.id!=Nodes[i].id){//自分以外のノードに対して
+            //         let dstX = Nodes[i].x - node.x;
+            //         let dstY = Nodes[i].y - node.y;
+            //         let dstSQRT = Math.sqrt(dstX * dstX + dstY * dstY);
+            //         if(dstSQRT<2*circleSize){
+            //             Nodes[i].x += dstX*circleSize/dstSQRT;
+            //             Nodes[i].y += dstY*circleSize/dstSQRT;
+            //         }
+            //     }
+            // })
+
             drawNode(Nodes[i].x, Nodes[i].y, Nodes[i].c, Nodes[i].id);
         }
         // console.log(Nodes[0])
@@ -177,14 +196,17 @@
                 let fy = 0;
                 Nodes.forEach(colombedNode=>{
                     if(colombedNode.id!=Nodes[i].id){
-                        let dstX = Nodes[i].x - colombedNode.x;
+                        let dstX = Nodes[i].x - colombedNode.x ;
                         let dstY = Nodes[i].y - colombedNode.y;
                         let dstSQRT = Math.sqrt(dstX * dstX + dstY * dstY);
                         let f = COULOMB/(dstSQRT*dstSQRT) //クーロン力
+                        if(dstSQRT==0) dstSQRT = 0.5;
                         fx += f * dstX/dstSQRT;
                         fy += f * dstY/dstSQRT;
                     }
                 })
+                if(isNaN(fx)) fx = 0;
+                if(isNaN(fy)) fy = 0;
 
                 Nodes.forEach(frictionedNode=>{
                     if(frictionedNode.id!=Nodes[i].id && isNeighbor(frictionedNode, Nodes[i])){
@@ -192,33 +214,28 @@
                         let dstY = frictionedNode.y - Nodes[i].y;
                         let dstSQRT = Math.sqrt(dstX * dstX + dstY * dstY);
                         let f = BOUNCE * (dstSQRT - SPRINGLENGTH); //フックの法則による力
+                        if(dstSQRT==0) dstSQRT = 0.5;
                         fx += f * dstX/dstSQRT;
                         fy += f * dstY/dstSQRT;
                     }
                 })
 
-                Nodes[i].vx = (Nodes[i].vx + fx) * FRICTION;
-                Nodes[i].vy = (Nodes[i].vy + fy) * FRICTION;
+                // if(isNaN(fx)) fx = 0;
+                // if(isNaN(fy)) fy = 0;
 
-                // if(Nodes[i].x+Nodes[i].vx<=0){ //左の壁に当たる場合
-                //     Nodes[i].x = 0;
-                //     Nodes[i].vx = 0;
-                // }else if(Nodes[i].x+Nodes[i].vx>=beforeMinBodySize){ //右の壁に当たる場合
-                //     Nodes[i].x = beforeMinBodySize;
-                //     Nodes[i].vx = 0;
-                // }else{
-                    Nodes[i].x += Nodes[i].vx;
-                // }
+                let gDstX =  Nodes[i].x-canvas.width/2;
+                let gDstY =  Nodes[i].y-canvas.width/2;
+                let gDst = Math.sqrt(gDstX*gDstX + gDstY*gDstY);
+                let gF = -1*GRAVITY * (gDst*gDst);
+                fx += gF * gDstX/gDst;
+                fy += gF * gDstY/gDst;
+                // console.log(gF);
 
-                // if(Nodes[i].y+Nodes[i].vy<=0){ //上の壁に当たる場合
-                //     Nodes[i].y = 0;
-                //     Nodes[i].vy = 0;
-                // }else if(Nodes[i].y+Nodes[i].vy>=beforeMinBodySize){ //下の壁に当たる場合
-                //     Nodes[i].y = beforeMinBodySize;
-                //     Nodes[i].vy = 0;
-                // }else{
-                    Nodes[i].y += Nodes[i].vy;
-                // }
+                Nodes[i].vx = (Nodes[i].vx + fx) * FRICTION; //摩擦
+                Nodes[i].vy = (Nodes[i].vy + fy) * FRICTION; //摩擦
+
+                Nodes[i].x += Nodes[i].vx;
+                Nodes[i].y += Nodes[i].vy;
             }
         }
         redrawCanvas();
@@ -359,6 +376,8 @@
     canvas.addEventListener('mousemove', handleDrag);
     window.addEventListener("DOMContentLoaded", doAtFirst);
     window.addEventListener("resize", resizeWindow);
+    let slider = document.getElementById("circleSize");
+    slider.addEventListener("input", setCircleSize);
 
     // make graph
     function redrawRandomCactusGraph(){
