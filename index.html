@@ -55,9 +55,9 @@
     let colorName = ["red", "blue", "yellow"]
     let beforeMinBodySize = 0;
     let BOUNCE = 0.9;
-    let FRICTION = 0.1;
-    let SPRINGLENGTH = 150;
-    let COULOMB = 1000;
+    let FRICTION = 0.2;
+    let SPRINGLENGTH = circleSize*10;
+    let COULOMB = 5000;
     let GRAVITY = 0.1;
 
     let visitTime = {};
@@ -85,6 +85,7 @@
         canvas.width = minSize*3/4;
         canvas.height = minSize*3/4;
         circleSize = minSize/40;
+        SPRINGLENGTH = circleSize*4;
         redrawCanvas();
         beforeMinBodySize = minSize; //描画後に今のcanvasのサイズを保存
     }
@@ -171,51 +172,53 @@
 
     function makeBalancedGraph(){
         for(let i=0;i<Nodes.length;i++){
-            let fx = 0;
-            let fy = 0;
-            Nodes.forEach(colombedNode=>{
-                if(colombedNode.id!=Nodes[i].id){
-                    let dstX = Nodes[i].x - colombedNode.x;
-                    let dstY = Nodes[i].y - colombedNode.y;
-                    let dstSQRT = Math.sqrt(dstX * dstX + dstY * dstY);
-                    let f = COULOMB/(dstSQRT*dstSQRT) //クーロン力
-                    fx += f * dstX/dstSQRT;
-                    fy += f * dstY/dstSQRT;
-                }
-            })
+            if(Nodes[i].id!=clickedNodeId){
+                let fx = 0;
+                let fy = 0;
+                Nodes.forEach(colombedNode=>{
+                    if(colombedNode.id!=Nodes[i].id){
+                        let dstX = Nodes[i].x - colombedNode.x;
+                        let dstY = Nodes[i].y - colombedNode.y;
+                        let dstSQRT = Math.sqrt(dstX * dstX + dstY * dstY);
+                        let f = COULOMB/(dstSQRT*dstSQRT) //クーロン力
+                        fx += f * dstX/dstSQRT;
+                        fy += f * dstY/dstSQRT;
+                    }
+                })
 
-            Nodes.forEach(frictionedNode=>{
-                if(frictionedNode.id!=Nodes[i].id && isNeighbor(frictionedNode, Nodes[i])){
-                    let dstX = frictionedNode.x - Nodes[i].x;
-                    let dstY = frictionedNode.y - Nodes[i].y;
-                    let dstSQRT = Math.sqrt(dstX * dstX + dstY * dstY);
-                    let f = BOUNCE * (dstSQRT - SPRINGLENGTH); //フックの法則による力
-                    fx += f * dstX/dstSQRT;
-                    fy += f * dstY/dstSQRT;
-                }
-            })
+                Nodes.forEach(frictionedNode=>{
+                    if(frictionedNode.id!=Nodes[i].id && isNeighbor(frictionedNode, Nodes[i])){
+                        let dstX = frictionedNode.x - Nodes[i].x;
+                        let dstY = frictionedNode.y - Nodes[i].y;
+                        let dstSQRT = Math.sqrt(dstX * dstX + dstY * dstY);
+                        let f = BOUNCE * (dstSQRT - SPRINGLENGTH); //フックの法則による力
+                        fx += f * dstX/dstSQRT;
+                        fy += f * dstY/dstSQRT;
+                    }
+                })
 
-            Nodes[i].vx = (Nodes[i].vx + fx) * FRICTION;
-            Nodes[i].vy = (Nodes[i].vy + fy) * FRICTION;
+                Nodes[i].vx = (Nodes[i].vx + fx) * FRICTION;
+                Nodes[i].vy = (Nodes[i].vy + fy) * FRICTION;
 
-            if(Nodes[i].x+Nodes[i].vx<=0){ //左の壁に当たる場合
-                Nodes[i].x = 0;
-                Nodes[i].vx = 0;
-            }else if(Nodes[i].x+Nodes[i].vx>=beforeMinBodySize){ //右の壁に当たる場合
-                Nodes[i].x = beforeMinBodySize;
-                Nodes[i].vx = 0;
-            }else{
-                Nodes[i].x += Nodes[i].vx;
-            }
+                // if(Nodes[i].x+Nodes[i].vx<=0){ //左の壁に当たる場合
+                //     Nodes[i].x = 0;
+                //     Nodes[i].vx = 0;
+                // }else if(Nodes[i].x+Nodes[i].vx>=beforeMinBodySize){ //右の壁に当たる場合
+                //     Nodes[i].x = beforeMinBodySize;
+                //     Nodes[i].vx = 0;
+                // }else{
+                    Nodes[i].x += Nodes[i].vx;
+                // }
 
-            if(Nodes[i].y+Nodes[i].vy<=0){ //上の壁に当たる場合
-                Nodes[i].y = 0;
-                Nodes[i].vy = 0;
-            }else if(Nodes[i].y+Nodes[i].vy>=beforeMinBodySize){ //下の壁に当たる場合
-                Nodes[i].y = beforeMinBodySize;
-                Nodes[i].vy = 0;
-            }else{
-                Nodes[i].y += Nodes[i].vy;
+                // if(Nodes[i].y+Nodes[i].vy<=0){ //上の壁に当たる場合
+                //     Nodes[i].y = 0;
+                //     Nodes[i].vy = 0;
+                // }else if(Nodes[i].y+Nodes[i].vy>=beforeMinBodySize){ //下の壁に当たる場合
+                //     Nodes[i].y = beforeMinBodySize;
+                //     Nodes[i].vy = 0;
+                // }else{
+                    Nodes[i].y += Nodes[i].vy;
+                // }
             }
         }
         redrawCanvas();
