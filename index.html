@@ -26,11 +26,16 @@
 <input type="button" value="check cactus graph" onclick="doCheckCactusGraph()">
 <input type="button" value="test check cactus graph" onclick="doTestCheckCactusGraph()">
 <input type="button" value="test check uncactus graph" onclick="doTestCheckUnCactusGraph()">
-<input type="button" value="do minimize" onclick="redrawMinimumGraph()">
+<!-- <input type="button" value="do minimize" onclick="redrawMinimumGraph()"> -->
 <input type="button" value="coloring graph" onclick="doColoring()">
-<input type="number" value=15 id="graphSize">
-<input type="number" value=15 id="graphComplex">
+<input type="button" value="step coloring graph" onclick="stepColoring()">
+<input type="button" value="show status" onclick="showStatus()">
+<input type="button" value="make balanced graph" onclick="switchMakeBlancedGraph()">
+<input type="number" value=13 id="graphSize">
+<input type="number" value=13 id="graphComplex">
+<input type="number" value=15 id="xRange">
 <input type="range" min="1" max="100" value="100" id="circleSize">
+<!-- <input type="range" min="1" max="100" value="100" id="gravitySize"> -->
 <!-- <textarea id="fileContent" cols="40" rows="8">5 5
 1 2
 1 3
@@ -56,9 +61,17 @@
     let colorName = ["red", "blue", "yellow"]
     let beforeMinBodySize = 0;
     let changeCircleSize = 100;
+    let isShowStatus = false;
+    let balanceGraphInterval = null;
+    let cntBalanceGraph = 1;
+    let MouceX = 0;
+    let MouceY = 0;
+    let zoomScale = 0.2;
+    let GravityX = 0;
+    let GravityY = 0;
     let BOUNCE = 0.9;
-    let FRICTION = 0.3;
-    let SPRINGLENGTH = circleSize*10;
+    let FRICTION = 0.2;
+    let SPRINGLENGTH = circleSize*4;
     let COULOMB = 5000;
     let GRAVITY = 0.00002;
 
@@ -66,9 +79,11 @@
 
     function doAtFirst(){
         beforeMinBodySize = Math.min(document.body.clientHeight,document.body.clientWidth);
+        GravityX = beforeMinBodySize*3/8;
+        GravityY = beforeMinBodySize*3/8;
         resizeWindow();
         initialize();
-        setInterval(makeBalancedGraph, 50);
+        balanceGraphInterval = setInterval(makeBalancedGraph, 50);
     }
 
     function initialize(){
@@ -111,6 +126,7 @@
 
     function setCircleSize(){
         changeCircleSize = document.getElementById("circleSize").value;
+        redrawCanvas();
     }
 
     function drawEdge(i, j){// idがi,jのノード間にエッジ
@@ -150,32 +166,50 @@
     // Function to redraw all Nodes
     function redrawNodes() {
         for(let i=0;i<Nodes.length;i++){
-            if(Nodes[i].x<=0) Nodes[i].x = 0; //左の壁
-            else if(Nodes[i].x>=beforeMinBodySize*3/4) Nodes[i].x = beforeMinBodySize*3/4; //右の壁
-            if(Nodes[i].y<=0) Nodes[i].y = 0; //上の壁
-            else if(Nodes[i].y>=beforeMinBodySize*3/4) Nodes[i].y = beforeMinBodySize*3/4; // 下の壁
-
-            // Nodes.forEach(node=>{
-            //     if(node.id!=Nodes[i].id){//自分以外のノードに対して
-            //         let dstX = Nodes[i].x - node.x;
-            //         let dstY = Nodes[i].y - node.y;
-            //         let dstSQRT = Math.sqrt(dstX * dstX + dstY * dstY);
-            //         if(dstSQRT<2*circleSize){
-            //             Nodes[i].x += dstX*circleSize/dstSQRT;
-            //             Nodes[i].y += dstY*circleSize/dstSQRT;
-            //         }
-            //     }
-            // })
-
             drawNode(Nodes[i].x, Nodes[i].y, Nodes[i].c, Nodes[i].id);
+            drawNodeStatus(Nodes[i]);
         }
         // console.log(Nodes[0])
     }
+
     function redrawEdges(){
+        for(let i=0;i<Nodes.length;i++){
+            //辺の長さを制限
+            let neighborNodes = getNeighborNodes(Nodes[i], Nodes);
+            neighborNodes.forEach(neighbor=>{
+                let nowDist = Math.sqrt((Nodes[i].x-neighbor.x)**2 + (Nodes[i].y-neighbor.y)**2);
+                if(nowDist>=SPRINGLENGTH*2){
+                    // console.log("やぁ");
+                    Nodes[i].x = neighbor.x + (Nodes[i].x-neighbor.x) * SPRINGLENGTH / nowDist;
+                    Nodes[i].y = neighbor.y + (Nodes[i].y-neighbor.y) * SPRINGLENGTH / nowDist;
+                }
+            })
+        }
         Edges.forEach(Edge => {
             drawEdge(Edge.start, Edge.end);
         });
     }
+
+    function drawNodeStatus(node){
+        let statusText = ""; // テキスト作成
+        if(false) statusText += " (" + node.x + "," + node.y + ") ";
+        if(isShowStatus) statusText += " id:" + node.id + " ";
+        if(isShowStatus) statusText += " x:" + node.p + " ";
+        if(isShowStatus) statusText += " c:" + node.c + " ";
+
+        let textMesure = ctx.measureText(statusText); //文字列の枠情報取得
+        ctx.fillStyle = "black";
+        ctx.fillRect(node.x, node.y, textMesure.width, textMesure.actualBoundingBoxAscent+textMesure.actualBoundingBoxDescent);
+
+        ctx.fillStyle = "white";
+        ctx.textBaseline = "middle";
+        ctx.fillText(statusText, node.x, node.y+textMesure.actualBoundingBoxAscent);
+     }
+
+     function showStatus(){
+        isShowStatus = !isShowStatus;
+        if(isShowStatus)redrawNodes(Nodes);
+     }
 
     function redrawCanvas(){
         // ノード座標の更新
@@ -184,9 +218,19 @@
             Nodes[i].x = Nodes[i].x * nowMinBodySize / beforeMinBodySize;
             Nodes[i].y = Nodes[i].y * nowMinBodySize / beforeMinBodySize;
         }
+        // 中心座標の更新
+        GravityX = GravityX * nowMinBodySize / beforeMinBodySize;
+        GravityY = GravityY * nowMinBodySize / beforeMinBodySize;
+
         clearCanvas();
         redrawEdges();
         redrawNodes();
+    }
+
+    function switchMakeBlancedGraph(){
+        if(cntBalanceGraph%2 == 0) balanceGraphInterval = setInterval(makeBalancedGraph, 1);
+        else clearInterval(balanceGraphInterval);
+        makeNotCactusGraph = ++cntBalanceGraph%2;
     }
 
     function makeBalancedGraph(){
@@ -223,10 +267,10 @@
                 // if(isNaN(fx)) fx = 0;
                 // if(isNaN(fy)) fy = 0;
 
-                let gDstX =  Nodes[i].x-canvas.width/2;
-                let gDstY =  Nodes[i].y-canvas.width/2;
+                let gDstX =  Nodes[i].x-GravityX;
+                let gDstY =  Nodes[i].y-GravityY;
                 let gDst = Math.sqrt(gDstX*gDstX + gDstY*gDstY);
-                let gF = -1*GRAVITY * (gDst*gDst);
+                let gF = -1 * GRAVITY * (gDst*gDst);
                 fx += gF * gDstX/gDst;
                 fy += gF * gDstY/gDst;
                 // console.log(gF);
@@ -238,6 +282,36 @@
                 Nodes[i].y += Nodes[i].vy;
             }
         }
+        redrawCanvas();
+    }
+
+    function doZoom(event){
+        const rect = canvas.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+        //ノード座標の変更 図形の合同条件を思い出せ
+        if(event.wheelDelta>0){
+            for(let i=0;i<Nodes.length;i++){
+                Nodes[i].x += (Nodes[i].x - x) * zoomScale;
+                Nodes[i].y += (Nodes[i].y - y) * zoomScale;
+            }
+            circleSize += circleSize*zoomScale;
+            COULOMB = COULOMB * ((1+zoomScale)**2);
+            GRAVITY = GRAVITY /  (1+zoomScale)**2;
+        }else if(event.wheelDelta<0){
+            for(let i=0;i<Nodes.length;i++){
+                Nodes[i].x -= (Nodes[i].x - x) * zoomScale / (1+zoomScale);
+                Nodes[i].y -= (Nodes[i].y - y) * zoomScale / (1+zoomScale);
+            }
+            circleSize -= circleSize * zoomScale / (1+zoomScale);
+            COULOMB = COULOMB * ((1 / (1+zoomScale))**2);
+            GRAVITY = GRAVITY /  (1 / (1+zoomScale))**2;
+        }
+        // console.log(COULOMB);
+        //エッジの長さ上限変更
+        SPRINGLENGTH = circleSize * 4;
+        //ノード大きさの変更
+        //係数の変更   
         redrawCanvas();
     }
 
@@ -272,6 +346,8 @@
         const rect = canvas.getBoundingClientRect();
         const x = event.clientX - rect.left;
         const y = event.clientY - rect.top;
+        MouceX = x; //クリック時のマウス座標
+        MouceY = y; //クリック時のマウス座標
         Nodes.forEach(Node => {
             const dx = x - Node.x;
             const dy = y - Node.y;
@@ -343,10 +419,15 @@
             clickedNodeId = -1;
             isDrawingEdge = false;
         } else {
-            Nodes.push(new Node(x, y, nodeIdNow, nodeIdNow++, 0, 0, 0)); // Add a new Node
+            Nodes.push(new Node(x, y, nodeIdNow++, getRandomX(), 0, 0, 0)); // Add a new Node
         }
 
         redrawCanvas();
+    }
+
+    function getRandomX(){
+        let xRange = document.getElementById("xRange").value;
+        return Math.floor(Math.random()*xRange);
     }
 
     // Function to handle mouse drag
@@ -357,12 +438,21 @@
             const x = event.clientX - rect.left;
             const y = event.clientY - rect.top;
             // Find the Node being dragged
-            if (event.buttons === 1 && clickedNodeId!==-1) {
+            if (clickedNodeId!==-1) {
                 let Node = Nodes[getNodeIndex(Nodes, clickedNodeId)];
                 Node.x = x;
                 Node.y = y;
-                redrawCanvas();
+            }else if(clickedNodeId===-1){
+                for(let i=0;i<Nodes.length;i++){
+                    Nodes[i].x += x-MouceX;
+                    Nodes[i].y += y-MouceY;
+                }
+                GravityX += x-MouceX;
+                GravityY += y-MouceY;
+                MouceX = x;
+                MouceY = y;
             }
+            redrawCanvas();
         }
         
     }
@@ -374,6 +464,7 @@
     canvas.addEventListener('click', handleClick);
     canvas.addEventListener('dblclick', handleDoubleClick);
     canvas.addEventListener('mousemove', handleDrag);
+    canvas.addEventListener("mousewheel", doZoom);
     window.addEventListener("DOMContentLoaded", doAtFirst);
     window.addEventListener("resize", resizeWindow);
     let slider = document.getElementById("circleSize");
@@ -401,7 +492,7 @@
         Edges = [];
         // console.log("start make cactus");
         let camvasSize = getCanvasSize();
-        let beginNode = new Node(Math.random()*camvasSize, Math.random()*camvasSize, nodeIdNow, nodeIdNow++, 0, 0, 0); //開始ノード作成
+        let beginNode = new Node(Math.random()*camvasSize, Math.random()*camvasSize, nodeIdNow++, getRandomX(), 0, 0, 0); //開始ノード作成
         Nodes.push(beginNode);//ノードとして登録
         for(let i=0;i<graphSize;i++){
             let nowNode = Nodes[Math.floor(Math.random()*Nodes.length)];//ノード選択
@@ -498,7 +589,7 @@
 
     function getRandomNode(){
         let camvasSize = getCanvasSize();
-        return new Node(Math.random()*camvasSize, Math.random()*camvasSize, nodeIdNow, nodeIdNow++, 0, 0, 0);
+        return new Node(Math.random()*camvasSize, Math.random()*camvasSize, nodeIdNow++, getRandomX(), 0, 0, 0);
     }
 
     function isIdInNodes(nodes, id){
@@ -1079,6 +1170,25 @@
         }while(isColoring());//彩色が終わるまで
         redrawCanvas();
         console.log("coloring finish")
+    }
+
+    function stepColoring(){
+        let beforeCalcNodes = getNodesCopy(Nodes);//操作前のノード達を避難
+        let calcNodes = getRandomElements(beforeCalcNodes);//ランダムで複数個のノードを取得
+        for(let i=0;i<calcNodes.length;i++){
+            //各ノードで計算, 内部情報の更新
+            calcingNode = calcNodes[i];
+            let neighborNodes = getNeighborNodes(calcingNode, beforeCalcNodes);//操作前の隣人達
+            if(isOutBiggerThan2(neighborNodes, calcingNode)){ // if Out(i)>2
+                Nodes[getNodeIndex(Nodes, calcingNode.id)].p =  getMaxX(neighborNodes)+1;
+            }else if(isInColor(getOutEdges(neighborNodes, calcingNode), calcingNode.c)){
+                let tempNode = Nodes[getNodeIndex(Nodes, calcingNode.id)];
+                tempNode.c = getMinColor(getOutEdges(neighborNodes, calcingNode));
+                Nodes[getNodeIndex(Nodes, calcingNode.id)] = tempNode.deepCopy();
+            }
+        }
+        redrawCanvas();
+        if(!isColoring())console.log("coloring finish");
     }
 
     function isColoring(){
