@@ -195,7 +195,7 @@
         if(false) statusText += " (" + node.x + "," + node.y + ") ";
         if(isShowStatus) statusText += " id:" + node.id + " ";
         if(isShowStatus) statusText += " x:" + node.p + " ";
-        if(isShowStatus) statusText += " c:" + node.c + " ";
+        if(false) statusText += " c:" + node.c + " ";
 
         let textMesure = ctx.measureText(statusText); //文字列の枠情報取得
         ctx.fillStyle = "black";
@@ -209,6 +209,7 @@
      function showStatus(){
         isShowStatus = !isShowStatus;
         if(isShowStatus)redrawNodes(Nodes);
+        
      }
 
     function redrawCanvas(){
