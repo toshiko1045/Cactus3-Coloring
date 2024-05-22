@@ -84,6 +84,7 @@
     let SPRINGLENGTH = circleSize*4;
     let COULOMB = 5000;
     let GRAVITY = 0.00002;
+    let selectedNodes = []; //デーモンに選択されたノードのidを格納
 
     let visitTime = {};
 
@@ -99,6 +100,7 @@
     function initialize(){
         Nodes = [];
         Edges = [];
+        selectedNodes = [];
         clickedNodeId = -1;
         lastEvent = "";
         edgeStartNodeId = -1;
@@ -123,14 +125,23 @@
 
     function drawNode(x, y, c, id) { //円を描写
         let canvasSize = Math.min(document.body.clientHeight,document.body.clientWidth);
+        if(selectedNodes.includes(id)) {
+            ctx.beginPath();
+            ctx.arc(x, y, (7/5)*circleSize*changeCircleSize/100, 0, Math.PI * 2);
+            ctx.fillStyle = "white";
+            ctx.fill();
+            ctx.strokeStyle = 'black'; 
+            ctx.stroke();
+            ctx.closePath();
+        }
         ctx.beginPath();
+        ctx.lineWidth = 2;
         ctx.arc(x, y, circleSize*changeCircleSize/100, 0, Math.PI * 2);
         ctx.fillStyle = colorName[c];
         ctx.fill();
         ctx.strokeStyle = 'black'; 
         ctx.stroke(); 
-        // ctx.fillStyle = 'black';
-        // ctx.fillText(id, x, y);
+        ctx.lineWidth = 1;
         ctx.closePath();
     }
 
@@ -153,10 +164,12 @@
 
     function drawLine(x0, y0, x1, y1){
         ctx.beginPath();
+        ctx.lineWidth = 3;
         ctx.moveTo(x0, y0);
         ctx.lineTo(x1, y1);
-        ctx.strokeStyle = 'black'; 
+        ctx.strokeStyle = "gray"; 
         ctx.stroke();
+        ctx.lineWidth = 1;
         ctx.closePath();
     }
 
@@ -1184,11 +1197,13 @@
     }
 
     function stepColoring(){
+        selectedNodes = []; //初期化
         let beforeCalcNodes = getNodesCopy(Nodes);//操作前のノード達を避難
         let calcNodes = getRandomElements(beforeCalcNodes);//ランダムで複数個のノードを取得
         for(let i=0;i<calcNodes.length;i++){
             //各ノードで計算, 内部情報の更新
             calcingNode = calcNodes[i];
+            selectedNodes.push(calcingNode.id); //選択されたノードとして登録
             let neighborNodes = getNeighborNodes(calcingNode, beforeCalcNodes);//操作前の隣人達
             if(isOutBiggerThan2(neighborNodes, calcingNode)){ // if Out(i)>2
                 Nodes[getNodeIndex(Nodes, calcingNode.id)].p =  getMaxX(neighborNodes)+1;
