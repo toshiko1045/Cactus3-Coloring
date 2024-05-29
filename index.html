@@ -41,6 +41,8 @@
     <input type="button" value="step coloring graph" onclick="stepColoring()">
     <input type="button" value="show status" onclick="showStatus()">
     <input type="button" value="make balanced graph" onclick="switchMakeBlancedGraph()">
+    <input type="button" value="undo" onclick="undo()">
+    <input type="button" value="redo" onclick="redo()">
     <input type="number" value=7 id="graphSize">
     <input type="number" value=7 id="graphComplex">
     <input type="number" value=15 id="xRange">
@@ -79,6 +81,15 @@
     let COULOMB = 5000;
     let GRAVITY = 0.00002;
     let selectedNodes = []; //デーモンに選択されたノードのidを格納
+    let nodesUndoStack = [];
+    let nodesRedoStack = [];
+    let edgesUndoStack = [];
+    let edgesRedoStack = [];
+    let selectedNodesUndoStack = [];
+    let selectedNodesRedoStack = [];
+    let isUndid = false;
+    let functionsUndoStack = [];
+    let functionsRedoStack = [];
 
     let visitTime = {};
 
@@ -121,6 +132,61 @@
     function drawGrid(space){// sppace : 間隔
         let nowX = GravityX;
         let nowY = GravityY;
+    }
+
+    //undoStackに格納
+    function pushUndoStack(){
+        nodesUndoStack.unshift(getNodesCopy(Nodes));
+        edgesUndoStack.unshift(getEdgesCopy(Edges));
+        selectedNodesUndoStack.unshift(selectedNodes);
+    }
+
+    function popUndoStack(){
+        Nodes = nodesUndoStack.shift();
+        Edges = edgesUndoStack.shift();
+        selectedNodes = selectedNodesUndoStack.shift();
+    }
+
+    function pushRedoStack(){
+        nodesRedoStack.unshift(getNodesCopy(Nodes));
+        edgesRedoStack.unshift(getEdgesCopy(Edges));
+        selectedNodesRedoStack.unshift(selectedNodes);
+    }
+
+    function popRedoStack(){
+        isUndid = false;
+        Nodes = nodesRedoStack.shift();
+        Edges = edgesRedoStack.shift();
+        selectedNodes = selectedNodesRedoStack.shift();
+    }
+
+    function clearUndoStack(){
+        nodesUndoStack = [];
+        edgesUndoStack = [];
+        selectedNodesUndoStack = [];
+    }
+
+    function clearRedoStack(){
+        nodesRedoStack = [];
+        edgesRedoStack = [];
+        selectedNodesRedoStack = [];
+    }
+
+    function undo(){
+        if(nodesUndoStack.length>0){
+            isUndid = true;
+            pushRedoStack();
+            popUndoStack();
+            redrawCanvas();
+        }
+    }
+
+    function redo(){
+        if(nodesRedoStack.length>0){
+            pushUndoStack();
+            popRedoStack();
+            redrawCanvas();
+        }
     }
 
     function drawNode(x, y, c, id) { //円を描写
@@ -396,6 +462,9 @@
     }
 
     function handleClick(event){
+        if(isUndid) clearRedoStack();
+        pushUndoStack(); //前の状態保存
+
         if(isFinishedMove){
             const rect = canvas.getBoundingClientRect();
             const x = event.clientX - rect.left;
@@ -428,6 +497,9 @@
 
     // Function to handle mouse click
     function handleDoubleClick(event) {
+        if(isUndid) clearRedoStack();
+        pushUndoStack(); //前の状態保存
+
         const rect = canvas.getBoundingClientRect();
         const x = event.clientX - rect.left;
         const y = event.clientY - rect.top;
@@ -503,6 +575,8 @@
 
     // make graph
     function redrawRandomCactusGraph(){
+        if(isUndid) clearRedoStack();
+        pushUndoStack(); //前の状態保存
         initialize();
         makeRandomCactusGraph();
         clearCanvas();
@@ -510,6 +584,8 @@
     }
 
     function redrawRandomUnCactusGraph(){
+        if(isUndid) clearRedoStack();
+        pushUndoStack(); //前の状態保存
         initialize();
         makeRandomUnCactusGraph();
         clearCanvas();
@@ -1182,6 +1258,8 @@
 
     // coloring
     function doColoring(){
+        if(isUndid) clearRedoStack();
+        pushUndoStack(); //前の状態保存
         do{
             let beforeCalcNodes = getNodesCopy(Nodes);//操作前のノード達を避難
             let calcNodes = getRandomElements(beforeCalcNodes);//ランダムで複数個のノードを取得
@@ -1204,6 +1282,8 @@
     }
 
     function stepColoring(){
+        if(isUndid) clearRedoStack();
+        pushUndoStack(); //前の状態保存
         selectedNodes = []; //初期化
         let beforeCalcNodes = getNodesCopy(Nodes);//操作前のノード達を避難
         let calcNodes = getRandomElements(beforeCalcNodes);//ランダムで複数個のノードを取得
