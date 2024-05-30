@@ -462,9 +462,6 @@
     }
 
     function handleClick(event){
-        if(isUndid) clearRedoStack();
-        pushUndoStack(); //前の状態保存
-
         if(isFinishedMove){
             const rect = canvas.getBoundingClientRect();
             const x = event.clientX - rect.left;
@@ -479,12 +476,14 @@
                     clickedNodeId = Node.id;
                 }
             });
-            if(clickedNodeId !== -1){
+            if(clickedNodeId !== -1){ //ノードがクリックされた場合
                 if(!isDrawingEdge){
                     edgeStartNodeId = clickedNodeId;
                     isDrawingEdge = true;
                 }else{
-                    if(edgeStartNodeId !== clickedNodeId){
+                    if(edgeStartNodeId !== clickedNodeId){ //エッジ追加
+                        if(isUndid) clearRedoStack();
+                        pushUndoStack(); //前の状態保存
                         Edges.push({start: edgeStartNodeId, end: clickedNodeId});
                     }
                     isDrawingEdge = false;
