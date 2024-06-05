@@ -62,6 +62,9 @@
             <input type="button" value="make balanced graph" onclick="switchMakeBlancedGraph()">
             <input type="button" value="undo" onclick="undo()">
             <input type="button" value="redo" onclick="redo()">
+            <input type="button" value="change color" onclick="changeColor()">
+            <input type="button" value="change x" onclick="changeX()">
+            <input type="number" value=0 id="changedX">
             <input type="number" value=7 id="graphSize">
             <input type="number" value=7 id="graphComplex">
             <input type="number" value=15 id="xRange">
@@ -211,6 +214,17 @@
         }
     }
 
+    function changeColor(){
+        let clickedNodeIndex = getNodeIndex(Nodes, clickedNodeId);
+        Nodes[clickedNodeIndex].c = (Nodes[clickedNodeIndex].c+1)%3 ;
+    }
+
+    function changeX(){
+        let changedX = document.getElementById("changedX").value;
+        let clickedNodeIndex = getNodeIndex(Nodes, clickedNodeId);
+        Nodes[clickedNodeIndex].p = changedX ;
+    }
+
     function drawNode(x, y, c, id) { //円を描写
         let canvasSize = Math.min(document.body.clientHeight,document.body.clientWidth);
         if(selectedNodes.includes(id)) {
@@ -224,7 +238,11 @@
         }
         ctx.beginPath();
         ctx.lineWidth = 2;
-        ctx.arc(x, y, circleSize*changeCircleSize/100, 0, Math.PI * 2);
+        if(clickedNodeId==id) {
+            console.log(id)
+            ctx.arc(x, y, 2*circleSize*changeCircleSize/100, 0, Math.PI * 2);
+        }
+        else ctx.arc(x, y, circleSize*changeCircleSize/100, 0, Math.PI * 2);
         ctx.fillStyle = colorName[c];
         ctx.fill();
         ctx.strokeStyle = 'black'; 
@@ -278,6 +296,8 @@
     function redrawNodes() {
         for(let i=0;i<Nodes.length;i++){
             drawNode(Nodes[i].x, Nodes[i].y, Nodes[i].c, Nodes[i].id);
+        }
+        for(let i=0;i<Nodes.length;i++){
             drawNodeStatus(Nodes[i]);
         }
         // console.log(Nodes[0])
@@ -526,9 +546,11 @@
                         if(isUndid) clearRedoStack();
                         pushUndoStack(); //前の状態保存
                         Edges.push({start: edgeStartNodeId, end: clickedNodeId});
+                        clickedNodeId = -1;
                     }
                     isDrawingEdge = false;
                 }
+                // clickedNodeId = -1;
             }
         }
         isFinishedMove = true;
@@ -554,7 +576,7 @@
             }
         });
 
-        if (clickedNodeId !== -1) {
+        if (clickedNodeId !== -1) { //ノードがクリックされた場合
             Nodes.splice(getNodeIndex(Nodes, clickedNodeId), 1); // Remove the clicked Node
             Edges = removeEdgesById(Edges, clickedNodeId);
             clickedNodeId = -1;
