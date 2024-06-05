@@ -12,17 +12,35 @@
     body {
         width: 100%;
         height: 100%;
+        display: flex;
+        column-gap: 1%;
     }
     #canvasContainer{
         display: flex;
         justify-content: center;
         align-items: center;
     }
+    #textAndButtonContainer{
+        /* height: 75%; */
+        justify-content: center;
+        align-items: center;
+        margin: 10% auto;
+    }
+    #processArea{
+        height: 75%;
+        width: 200pt;
+        overflow: scroll;
+        white-space: pre-line
+    }
+    #myButtons{
+        height: 25%;
+        width: 50%;
+    }
     canvas {
         border: 10px solid gray;
         cursor: default;
         border-radius: 40px 40px 40px 40px;
-        margin: 0 auto;
+        margin: 5% auto;
     }
 </style>
 </head>
@@ -30,25 +48,30 @@
     <div id="canvasContainer">
         <canvas id="myCanvas"></canvas>
     </div>
-<div>
-    <input type="button" value="make random cactus graph" onclick="redrawRandomCactusGraph()">
-    <input type="button" value="make random uncactus graph" onclick="redrawRandomUnCactusGraph()">
-    <input type="button" value="check cactus graph" onclick="doCheckCactusGraph()">
-    <input type="button" value="test check cactus graph" onclick="doTestCheckCactusGraph()">
-    <input type="button" value="test check uncactus graph" onclick="doTestCheckUnCactusGraph()">
-    <!-- <input type="button" value="do minimize" onclick="redrawMinimumGraph()"> -->
-    <input type="button" value="coloring graph" onclick="doColoring()">
-    <input type="button" value="step coloring graph" onclick="stepColoring()">
-    <input type="button" value="show status" onclick="showStatus()">
-    <input type="button" value="make balanced graph" onclick="switchMakeBlancedGraph()">
-    <input type="button" value="undo" onclick="undo()">
-    <input type="button" value="redo" onclick="redo()">
-    <input type="number" value=7 id="graphSize">
-    <input type="number" value=7 id="graphComplex">
-    <input type="number" value=15 id="xRange">
-    <input type="range" min="1" max="100" value="100" id="circleSize">
-    <input type="range" min="1" max="100" value="100" id="gravitySize">
-</div id="myButtons">
+    <div id="textAndButtonContainer">
+        <div id="processArea">
+        </div>
+
+        <div id="myButtons">
+            <input type="button" value="make random cactus graph" onclick="redrawRandomCactusGraph()">
+            <input type="button" value="make random uncactus graph" onclick="redrawRandomUnCactusGraph()">
+            <input type="button" value="check cactus graph" onclick="doCheckCactusGraph()">
+            <input type="button" value="test check cactus graph" onclick="doTestCheckCactusGraph()">
+            <input type="button" value="test check uncactus graph" onclick="doTestCheckUnCactusGraph()">
+            <!-- <input type="button" value="do minimize" onclick="redrawMinimumGraph()"> -->
+            <input type="button" value="coloring graph" onclick="doColoring()">
+            <input type="button" value="step coloring graph" onclick="stepColoring()">
+            <input type="button" value="show status" onclick="showStatus()">
+            <input type="button" value="make balanced graph" onclick="switchMakeBlancedGraph()">
+            <input type="button" value="undo" onclick="undo()">
+            <input type="button" value="redo" onclick="redo()">
+            <input type="number" value=7 id="graphSize">
+            <input type="number" value=7 id="graphComplex">
+            <input type="number" value=15 id="xRange">
+            <input type="range" min="1" max="100" value="100" id="circleSize">
+            <input type="range" min="1" max="100" value="100" id="gravitySize">
+        </div>
+    </div>
 
 <script>
     const canvas = document.getElementById('myCanvas');
@@ -73,11 +96,12 @@
     let MouceX = 0;
     let MouceY = 0;
     let zoomScale = 0.2;
+    let cntZoomNum = 0;
     let GravityX = 0;
     let GravityY = 0;
     let BOUNCE = 0.9;
-    let FRICTION = 0.3;
-    let SPRINGLENGTH = circleSize*4;
+    let FRICTION = 0.1;
+    let SPRINGLENGTH = circleSize*8;
     let COULOMB = 5000;
     let GRAVITY = 0.00002;
     let selectedNodes = []; //デーモンに選択されたノードのidを格納
@@ -287,18 +311,35 @@
         if(false) statusText += " c:" + node.c + " ";
 
         let textMesure = ctx.measureText(statusText); //文字列の枠情報取得
-        ctx.fillStyle = "black";
-        ctx.fillRect(node.x, node.y, textMesure.width, textMesure.actualBoundingBoxAscent+textMesure.actualBoundingBoxDescent);
+        ctx.strokeStyle = "black";
+        ctx.lineWidth = 1;
+        ctx.fillStyle = "white";        
+        ctx.fillRect(node.x, node.y, textMesure.width*2, (textMesure.actualBoundingBoxAscent+textMesure.actualBoundingBoxDescent)*2);
+        ctx.strokeRect(node.x, node.y, textMesure.width*2, (textMesure.actualBoundingBoxAscent+textMesure.actualBoundingBoxDescent)*2);
 
-        ctx.fillStyle = "white";
+        ctx.fillStyle = "black";
         ctx.textBaseline = "middle";
-        ctx.fillText(statusText, node.x, node.y+textMesure.actualBoundingBoxAscent);
+        ctx.fillText(statusText, node.x+textMesure.width/2, node.y+textMesure.actualBoundingBoxAscent+(textMesure.actualBoundingBoxAscent+textMesure.actualBoundingBoxDescent)/2);
      }
 
      function showStatus(){
         isShowStatus = !isShowStatus;
         if(isShowStatus)redrawNodes(Nodes);
-        
+     }
+
+     function showProcessLog(beforeNodes, nowNodes){
+        let showText = "";
+        beforeNodes.forEach((beforeNode,i)=>{
+            let nowNode = nowNodes[i];
+            if(selectedNodes.includes(beforeNode.id)){
+                if(beforeNode.id != nowNode.id) return null;
+                showText += beforeNode.id + " : ";
+                if(beforeNode.p==nowNode.p && beforeNode.c==nowNode.c) showText += "not changed\n";
+                else if(beforeNode.p!=nowNode.p && beforeNode.c==nowNode.c) showText += "x:" + beforeNode.p + " → x:" + nowNode.p + "\n";
+                else if(beforeNode.p==nowNode.p && beforeNode.c!=nowNode.c) showText += "c:" + beforeNode.c + " → c:" + nowNode.c + "\n";
+            }
+        })
+        document.getElementById("processArea").textContent = showText;
      }
 
     function redrawCanvas(){
@@ -385,7 +426,8 @@
         const x = event.clientX - rect.left;
         const y = event.clientY - rect.top;
         //ノード座標の変更 図形の合同条件を思い出せ
-        if(event.wheelDelta>0){
+        if(event.wheelDelta>0 && cntZoomNum<=5){
+            cntZoomNum++;
             for(let i=0;i<Nodes.length;i++){
                 Nodes[i].x += (Nodes[i].x - x) * zoomScale;
                 Nodes[i].y += (Nodes[i].y - y) * zoomScale;
@@ -393,7 +435,8 @@
             circleSize += circleSize*zoomScale;
             COULOMB = COULOMB * ((1+zoomScale)**2);
             GRAVITY = GRAVITY /  (1+zoomScale)**2;
-        }else if(event.wheelDelta<0){
+        }else if(event.wheelDelta<0 && cntZoomNum>=-5){
+            cntZoomNum--;
             for(let i=0;i<Nodes.length;i++){
                 Nodes[i].x -= (Nodes[i].x - x) * zoomScale / (1+zoomScale);
                 Nodes[i].y -= (Nodes[i].y - y) * zoomScale / (1+zoomScale);
@@ -1299,6 +1342,7 @@
                 Nodes[getNodeIndex(Nodes, calcingNode.id)] = tempNode.deepCopy();
             }
         }
+        showProcessLog(beforeCalcNodes, Nodes);
         redrawCanvas();
         if(!isColoring())console.log("coloring finish");
     }
