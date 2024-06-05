@@ -21,19 +21,19 @@
         align-items: center;
     }
     #textAndButtonContainer{
-        /* height: 75%; */
+        height: 75%;
         justify-content: center;
         align-items: center;
         margin: 10% auto;
     }
     #processArea{
-        height: 75%;
+        height: 50%;
         width: 200pt;
         overflow: scroll;
         white-space: pre-line
     }
     #myButtons{
-        height: 25%;
+        /* height: 25%; */
         width: 50%;
     }
     canvas {
@@ -49,9 +49,6 @@
         <canvas id="myCanvas"></canvas>
     </div>
     <div id="textAndButtonContainer">
-        <div id="processArea">
-        </div>
-
         <div id="myButtons">
             <input type="button" value="make random cactus graph" onclick="redrawRandomCactusGraph()">
             <input type="button" value="make random uncactus graph" onclick="redrawRandomUnCactusGraph()">
@@ -71,6 +68,7 @@
             <input type="range" min="1" max="100" value="100" id="circleSize">
             <input type="range" min="1" max="100" value="100" id="gravitySize">
         </div>
+        <div id="processArea"></div>
     </div>
 
 <script>
