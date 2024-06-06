@@ -32,10 +32,10 @@
         overflow: scroll;
         white-space: pre-line
     }
-    #myButtons{
-        /* height: 25%; */
-        width: 50%;
-    }
+    /* #myButtons{
+        height: 25%; */
+        /* width: 50%;
+    } */
     canvas {
         border: 10px solid gray;
         cursor: default;
@@ -50,29 +50,39 @@
     </div>
     <div id="textAndButtonContainer">
         <div id="myButtons">
-            <input type="button" value="make random cactus graph" onclick="redrawRandomCactusGraph()">
-            <input type="button" value="make random uncactus graph" onclick="redrawRandomUnCactusGraph()">
-            <input type="button" value="check cactus graph" onclick="doCheckCactusGraph()">
-            <input type="button" value="test check cactus graph" onclick="doTestCheckCactusGraph()">
-            <input type="button" value="test check uncactus graph" onclick="doTestCheckUnCactusGraph()">
-            <!-- <input type="button" value="do minimize" onclick="redrawMinimumGraph()"> -->
-            <input type="button" value="coloring graph" onclick="doColoring()">
-            <input type="button" value="step coloring graph" onclick="stepColoring()">
-            <input type="button" value="show status" onclick="showStatus()">
-            <input type="button" value="make balanced graph" onclick="switchMakeBlancedGraph()">
-            <input type="button" value="undo" onclick="undo()">
-            <input type="button" value="redo" onclick="redo()">
-            <input type="button" value="change color" onclick="changeColor()">
-            <input type="button" value="change x" onclick="changeX()">
-            <input type="text" id="graphName">
-            <input type="button" value="save" onclick="saveGraph()">
-            <select id="loadGraphName"></select>
-            <input type="button" value="load" onclick="loadGraph()">
-            <input type="button" value="delete" onclick="deleteGraph()">
-            <input type="number" value=0 id="changedX">
             <input type="number" value=7 id="graphSize">
             <input type="number" value=7 id="graphComplex">
             <input type="number" value=15 id="xRange">
+            <br>
+            <input type="button" value="make random cactus graph" onclick="redrawRandomCactusGraph()">
+            <input type="button" value="make random uncactus graph" onclick="redrawRandomUnCactusGraph()">
+            <input type="button" value="clear" onclick="clearGraph()">
+            <br>
+            <input type="button" value="change color" onclick="changeColor()">
+            <input type="number" value=0 id="changedX">
+            <input type="button" value="change x" onclick="changeX()">
+            <br>
+            <input type="button" value="check cactus graph" onclick="doCheckCactusGraph()">
+            <br>
+            <!-- <input type="button" value="test check cactus graph" onclick="doTestCheckCactusGraph()"> -->
+            <!-- <input type="button" value="test check uncactus graph" onclick="doTestCheckUnCactusGraph()"> -->
+            <!-- <input type="button" value="do minimize" onclick="redrawMinimumGraph()"> -->
+            <input type="button" value="coloring graph" onclick="switchColoringGraph()">
+            <input type="button" value="step coloring graph" onclick="stepColoring()">
+            <br>
+            <input type="button" value="show status" onclick="showStatus()">
+            <input type="button" value="make balanced graph" onclick="switchMakeBlancedGraph()">
+            <br>
+            <input type="button" value="undo" onclick="undo()">
+            <input type="button" value="redo" onclick="redo()">
+            <br>
+            <input type="text" id="graphName">
+            <input type="button" value="save" onclick="saveGraph()">
+            <br>
+            <select id="loadGraphName"></select>
+            <input type="button" value="load" onclick="loadGraph()">
+            <input type="button" value="delete" onclick="deleteGraph()">
+            <br>
             <input type="range" min="1" max="100" value="100" id="circleSize">
             <input type="range" min="1" max="100" value="100" id="gravitySize">
         </div>
@@ -98,7 +108,9 @@
     let changeGravitySize = 100;
     let isShowStatus = false;
     let balanceGraphInterval = null;
+    let coloringGraphInterval = null;
     let cntBalanceGraph = 1;
+    let cntColoringGraph = 0;
     let MouceX = 0;
     let MouceY = 0;
     let zoomScale = 0.2;
@@ -118,8 +130,8 @@
     let selectedNodesUndoStack = [];
     let selectedNodesRedoStack = [];
     let isUndid = false;
-    let functionsUndoStack = [];
-    let functionsRedoStack = [];
+    let processTextUndoStack = [];
+    let processTextRedoStack = [];
     let graphDB = null;
     let graphStore = null;
 
@@ -171,18 +183,21 @@
         nodesUndoStack.unshift(getNodesCopy(Nodes));
         edgesUndoStack.unshift(getEdgesCopy(Edges));
         selectedNodesUndoStack.unshift(selectedNodes);
+        processTextUndoStack.unshift(document.getElementById("processArea").textContent);
     }
 
     function popUndoStack(){
         Nodes = nodesUndoStack.shift();
         Edges = edgesUndoStack.shift();
         selectedNodes = selectedNodesUndoStack.shift();
+        showResult(processTextUndoStack.shift(document.getElementById("processArea").textContent));
     }
 
     function pushRedoStack(){
         nodesRedoStack.unshift(getNodesCopy(Nodes));
         edgesRedoStack.unshift(getEdgesCopy(Edges));
         selectedNodesRedoStack.unshift(selectedNodes);
+        processTextRedoStack.unshift(document.getElementById("processArea").textContent);
     }
 
     function popRedoStack(){
@@ -190,18 +205,21 @@
         Nodes = nodesRedoStack.shift();
         Edges = edgesRedoStack.shift();
         selectedNodes = selectedNodesRedoStack.shift();
+        showResult(processTextRedoStack.shift(document.getElementById("processArea").textContent));
     }
 
     function clearUndoStack(){
         nodesUndoStack = [];
         edgesUndoStack = [];
         selectedNodesUndoStack = [];
+        processTextUndoStack = [];
     }
 
     function clearRedoStack(){
         nodesRedoStack = [];
         edgesRedoStack = [];
         selectedNodesRedoStack = [];
+        processTextRedoStack = [];
     }
 
     function undo(){
@@ -257,6 +275,8 @@
         document.getElementById("graphName").value="";
     }
     function loadGraph(){
+        if(isUndid) clearRedoStack();
+        pushUndoStack(); //前の状態保存
         let loadGraphName = document.getElementById('loadGraphName').value;
         let tx = graphDB.transaction("graphStore", "readwrite");
         graphStore = tx.objectStore("graphStore");
@@ -264,7 +284,10 @@
         getRequest.onsuccess = function(event) {
             let getResult = getRequest.result;
             if (getResult) {
-                Nodes = getResult.graph.nodes;
+                Nodes = [];
+                getResult.graph.nodes.forEach((node,i)=>{
+                    Nodes.push(new Node(node.x, node.y, node.id, node.p, node.c, node.vx, node.vy));
+                })
                 Edges = getResult.graph.edges;
                 console.log(Nodes[0]);
             }
@@ -299,14 +322,15 @@
         document.getElementById("loadGraphName").appendChild(addOption);
     }
    
-    // function saveGraph(){
-    //     // saveNodesAndEdges(Nodes, Edges);
-    // }
-    // function loadGraph(){
-    //     // loadNodesAndEdges(Nodes, Edges);
-    // }
-
-
+    function clearGraph(){
+        if(isUndid) clearRedoStack();
+        pushUndoStack(); //前の状態保存
+        Nodes = [];
+        Edges = [];
+        selectedNodes = [];
+        document.getElementById("processArea").textContent = "";
+        redrawCanvas();
+    }
 
     function changeColor(){
         let clickedNodeIndex = getNodeIndex(Nodes, clickedNodeId);
@@ -436,18 +460,26 @@
         if(isShowStatus)redrawNodes(Nodes);
      }
 
+     function showResult(text){
+        document.getElementById("processArea").textContent = text;
+     }
+
      function showProcessLog(beforeNodes, nowNodes){
         let showText = "";
-        beforeNodes.forEach((beforeNode,i)=>{
-            let nowNode = nowNodes[i];
-            if(selectedNodes.includes(beforeNode.id)){
-                if(beforeNode.id != nowNode.id) return null;
-                showText += beforeNode.id + " : ";
-                if(beforeNode.p==nowNode.p && beforeNode.c==nowNode.c) showText += "not changed\n";
-                else if(beforeNode.p!=nowNode.p && beforeNode.c==nowNode.c) showText += "x:" + beforeNode.p + " → x:" + nowNode.p + "\n";
-                else if(beforeNode.p==nowNode.p && beforeNode.c!=nowNode.c) showText += "c:" + beforeNode.c + " → c:" + nowNode.c + "\n";
-            }
-        })
+        // console.log(beforeNodes)
+        if(beforeNodes.length>0){
+            beforeNodes.forEach((beforeNode,i)=>{
+                let nowNode = nowNodes[i];
+                if(selectedNodes.includes(beforeNode.id)){
+                    if(beforeNode.id != nowNode.id) return null;
+                    showText += beforeNode.id + " : ";
+                    if(beforeNode.p==nowNode.p && beforeNode.c==nowNode.c) showText += "not changed\n";
+                    else if(beforeNode.p!=nowNode.p && beforeNode.c==nowNode.c) showText += "x:" + beforeNode.p + " → x:" + nowNode.p + "\n";
+                    else if(beforeNode.p==nowNode.p && beforeNode.c!=nowNode.c) showText += "c:" + beforeNode.c + " → c:" + nowNode.c + "\n";
+                }
+            })
+        }
+        // console.log(showText)
         document.getElementById("processArea").textContent = showText;
      }
 
@@ -1003,8 +1035,8 @@
         isCactus = true;
         separatedGraphs = [getNodesCopy(Nodes)];
         isCactusGraph(Nodes);
-        if(isCactus)console.log("yes cactus");
-        else console.log("no cactus");
+        if(isCactus) showResult("yes cactus");
+        else showResult("no cactus");
 
         Nodes = getNodesCopy(originNodes);
         Edges = getEdgesCopy(originEdges);
@@ -1458,31 +1490,43 @@
             // redrawCanvas();
         }while(isColoring());//彩色が終わるまで
         redrawCanvas();
-        console.log("coloring finish")
+        showResult("coloring finish");
     }
 
+   function switchColoringGraph(){
+        if(cntColoringGraph%2 == 0) ColoringGraphInterval = setInterval(stepColoring, 1000);
+        else clearInterval(ColoringGraphInterval);
+        cntColoringGraph = ++cntColoringGraph%2
+   }
+
+   
     function stepColoring(){
         if(isUndid) clearRedoStack();
         pushUndoStack(); //前の状態保存
-        selectedNodes = []; //初期化
-        let beforeCalcNodes = getNodesCopy(Nodes);//操作前のノード達を避難
-        let calcNodes = getRandomElements(beforeCalcNodes);//ランダムで複数個のノードを取得
-        for(let i=0;i<calcNodes.length;i++){
-            //各ノードで計算, 内部情報の更新
-            calcingNode = calcNodes[i];
-            selectedNodes.push(calcingNode.id); //選択されたノードとして登録
-            let neighborNodes = getNeighborNodes(calcingNode, beforeCalcNodes);//操作前の隣人達
-            if(isOutBiggerThan2(neighborNodes, calcingNode)){ // if Out(i)>2
-                Nodes[getNodeIndex(Nodes, calcingNode.id)].p =  getMaxX(neighborNodes)+1;
-            }else if(isInColor(getOutEdges(neighborNodes, calcingNode), calcingNode.c)){
-                let tempNode = Nodes[getNodeIndex(Nodes, calcingNode.id)];
-                tempNode.c = getMinColor(getOutEdges(neighborNodes, calcingNode));
-                Nodes[getNodeIndex(Nodes, calcingNode.id)] = tempNode.deepCopy();
+        if(!isColoring()){
+            if(cntColoringGraph%2==1)clearInterval(ColoringGraphInterval);
+            selectedNodes = [];
+            showResult("coloring finish");
+        }else{
+            selectedNodes = []; //初期化
+            let beforeCalcNodes = getNodesCopy(Nodes);//操作前のノード達を避難
+            let calcNodes = getRandomElements(beforeCalcNodes);//ランダムで複数個のノードを取得
+            for(let i=0;i<calcNodes.length;i++){
+                //各ノードで計算, 内部情報の更新
+                calcingNode = calcNodes[i];
+                selectedNodes.push(calcingNode.id); //選択されたノードとして登録
+                let neighborNodes = getNeighborNodes(calcingNode, beforeCalcNodes);//操作前の隣人達
+                if(isOutBiggerThan2(neighborNodes, calcingNode)){ // if Out(i)>2
+                    Nodes[getNodeIndex(Nodes, calcingNode.id)].p =  getMaxX(neighborNodes)+1;
+                }else if(isInColor(getOutEdges(neighborNodes, calcingNode), calcingNode.c)){
+                    let tempNode = Nodes[getNodeIndex(Nodes, calcingNode.id)];
+                    tempNode.c = getMinColor(getOutEdges(neighborNodes, calcingNode));
+                    Nodes[getNodeIndex(Nodes, calcingNode.id)] = tempNode.deepCopy();
+                }
             }
+            showProcessLog(beforeCalcNodes, Nodes);
         }
-        showProcessLog(beforeCalcNodes, Nodes);
         redrawCanvas();
-        if(!isColoring())console.log("coloring finish");
     }
 
     function isColoring(){
