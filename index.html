@@ -84,9 +84,11 @@
             <input type="button" value="load" onclick="loadGraph()">
             <input type="button" value="delete" onclick="deleteGraph()">
             <br>
-            reduce node size : <input type="range" min="1" max="100" value="100" id="circleSize">
+            change node size : <input type="range" min="1" max="100" value="50" id="circleSize">
             <br>
-            reduce gravity size : <input type="range" min="1" max="100" value="100" id="gravitySize">
+            change gravity size : <input type="range" min="1" max="100" value="100" id="gravitySize">
+            <br>
+            change coulomb size : <input type="range" min="1" max="100" value="1" id="coulombSize">
             <br>
             <input type="button" value="undo" onclick="undo()">
             <input type="button" value="redo" onclick="redo()">
@@ -109,8 +111,9 @@
     let Color = [0,1,2];//赤, 青, 黃
     let colorName = ["red", "blue", "yellow"]
     let beforeMinBodySize = 0;
-    let changeCircleSize = 100;
+    let changeCircleSize = 50;
     let changeGravitySize = 100;
+    let changeCoulombSize = 1;
     let isShowStatus = false;
     let balanceGraphInterval = null;
     let coloringGraphInterval = null;
@@ -352,7 +355,7 @@
         let canvasSize = Math.min(document.body.clientHeight,document.body.clientWidth);
         if(selectedNodes.includes(id)) {
             ctx.beginPath();
-            ctx.arc(x, y, (7/5)*circleSize*changeCircleSize/100, 0, Math.PI * 2);
+            ctx.arc(x, y, (7/5)*circleSize*changeCircleSize/50, 0, Math.PI * 2);
             ctx.fillStyle = "white";
             ctx.fill();
             ctx.strokeStyle = 'black'; 
@@ -362,9 +365,9 @@
         ctx.beginPath();
         ctx.lineWidth = 2;
         if(clickedNodeId==id) {
-            ctx.arc(x, y, 2*circleSize*changeCircleSize/100, 0, Math.PI * 2);
+            ctx.arc(x, y, 2*circleSize*changeCircleSize/50, 0, Math.PI * 2);
         }
-        else ctx.arc(x, y, circleSize*changeCircleSize/100, 0, Math.PI * 2);
+        else ctx.arc(x, y, circleSize*changeCircleSize/50, 0, Math.PI * 2);
         ctx.fillStyle = colorName[c];
         ctx.fill();
         ctx.strokeStyle = 'black'; 
@@ -509,6 +512,11 @@
         redrawCanvas();
     }
 
+    function setCoulombSize(){
+        changeCoulombSize = document.getElementById("coulombSize").value;
+        redrawCanvas();
+    }
+
     function switchMakeBlancedGraph(){
         if(cntBalanceGraph%2 == 0) balanceGraphInterval = setInterval(makeBalancedGraph, 1);
         else clearInterval(balanceGraphInterval);
@@ -525,7 +533,7 @@
                         let dstX = Nodes[i].x - colombedNode.x ;
                         let dstY = Nodes[i].y - colombedNode.y;
                         let dstSQRT = Math.sqrt(dstX * dstX + dstY * dstY);
-                        let f = COULOMB/(dstSQRT*dstSQRT) //クーロン力
+                        let f = COULOMB*changeCoulombSize/(dstSQRT*dstSQRT) //クーロン力
                         if(dstSQRT==0) dstSQRT = 0.5;
                         fx += f * dstX/dstSQRT;
                         fy += f * dstY/dstSQRT;
@@ -571,7 +579,7 @@
         const x = event.clientX - rect.left;
         const y = event.clientY - rect.top;
         //ノード座標の変更 図形の合同条件を思い出せ
-        if(event.wheelDelta>0 && cntZoomNum<=5){
+        if(event.wheelDelta>0 && cntZoomNum<=7){
             cntZoomNum++;
             for(let i=0;i<Nodes.length;i++){
                 Nodes[i].x += (Nodes[i].x - x) * zoomScale;
@@ -580,7 +588,7 @@
             circleSize += circleSize*zoomScale;
             COULOMB = COULOMB * ((1+zoomScale)**2);
             GRAVITY = GRAVITY /  (1+zoomScale)**2;
-        }else if(event.wheelDelta<0 && cntZoomNum>=-5){
+        }else if(event.wheelDelta<0 && cntZoomNum>=-7){
             cntZoomNum--;
             for(let i=0;i<Nodes.length;i++){
                 Nodes[i].x -= (Nodes[i].x - x) * zoomScale / (1+zoomScale);
@@ -781,6 +789,8 @@
     setCircleSizeSlider.addEventListener("input", setCircleSize);
     let setGravitySizeSlider = document.getElementById("gravitySize");
     setGravitySizeSlider.addEventListener("input", setGravitySize);
+    let setCoulombSizeSlider = document.getElementById("coulombSize");
+    setCoulombSizeSlider.addEventListener("input", setCoulombSize);
 
     // make graph
     function redrawRandomCactusGraph(){
