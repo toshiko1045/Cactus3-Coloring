@@ -64,6 +64,11 @@
             <input type="button" value="redo" onclick="redo()">
             <input type="button" value="change color" onclick="changeColor()">
             <input type="button" value="change x" onclick="changeX()">
+            <input type="text" id="graphName">
+            <input type="button" value="save" onclick="saveGraph()">
+            <select id="loadGraphName"></select>
+            <input type="button" value="load" onclick="loadGraph()">
+            <input type="button" value="delete" onclick="deleteGraph()">
             <input type="number" value=0 id="changedX">
             <input type="number" value=7 id="graphSize">
             <input type="number" value=7 id="graphComplex">
@@ -115,6 +120,8 @@
     let isUndid = false;
     let functionsUndoStack = [];
     let functionsRedoStack = [];
+    let graphDB = null;
+    let graphStore = null;
 
     let visitTime = {};
 
@@ -214,6 +221,93 @@
         }
     }
 
+    // データベース関連
+    let request = indexedDB.open("graphDB");
+    request.onupgradeneeded = function(event){ // DBがなかったとき
+        graphDB = request.result;
+        graphStore = graphDB.createObjectStore("graphStore", {keyPath:"graphName"});
+        console.log("made db")
+    }
+    request.onerror = function(event){ // DBを開けなかったとき
+        console.log("error");
+    }
+    request.onsuccess = function(event){ // DBを開けたとき
+        graphDB = request.result;
+        console.log("success");
+        setAllSelectMenu()
+    }
+    function saveGraph(){
+        let graphNameVal = document.getElementById("graphName").value;
+        if(!graphNameVal){
+            let todayDate = new Date();
+            graphNameVal = "";
+            graphNameVal += todayDate.getFullYear() + "-";
+            graphNameVal += todayDate.getMonth() + "-";
+            graphNameVal += todayDate.getDate() + "-";
+            graphNameVal += todayDate.getHours() + ":";
+            graphNameVal += todayDate.getMinutes() + ":";
+            graphNameVal += todayDate.getSeconds() + ".";
+            graphNameVal += todayDate.getMilliseconds();
+        }
+        // console.log(graphNameVal)
+        let tx = graphDB.transaction("graphStore", "readwrite");
+        graphStore = tx.objectStore("graphStore");
+        graphStore.put({graphName:graphNameVal, graph:{nodes:Nodes, edges:Edges}});
+        setAllSelectMenu();
+        document.getElementById("graphName").value="";
+    }
+    function loadGraph(){
+        let loadGraphName = document.getElementById('loadGraphName').value;
+        let tx = graphDB.transaction("graphStore", "readwrite");
+        graphStore = tx.objectStore("graphStore");
+        let getRequest = graphStore.get(loadGraphName);
+        getRequest.onsuccess = function(event) {
+            let getResult = getRequest.result;
+            if (getResult) {
+                Nodes = getResult.graph.nodes;
+                Edges = getResult.graph.edges;
+                console.log(Nodes[0]);
+            }
+        };
+    }
+    function deleteGraph(){
+        let loadGraphName = document.getElementById('loadGraphName').value;
+        let tx = graphDB.transaction("graphStore", "readwrite");
+        graphStore = tx.objectStore("graphStore");
+        graphStore.delete(loadGraphName);
+        setAllSelectMenu();
+    }
+    function setAllSelectMenu(){
+        let tx = graphDB.transaction("graphStore", "readwrite");
+        graphStore = tx.objectStore("graphStore");
+        let getAllKeysRequest = graphStore.getAllKeys();
+        getAllKeysRequest.onsuccess = function(){
+            let allDBKeys = getAllKeysRequest.result;
+            let selectElement = document.getElementById("loadGraphName");
+            while(selectElement.firstChild){
+                selectElement.removeChild(selectElement.firstChild);
+            }
+            allDBKeys.forEach(k=>{
+                addSelectMenu(k);
+            })
+        }
+    }
+    function addSelectMenu(saveName){
+        let addOption = document.createElement("option");
+        addOption.value = saveName;
+        addOption.textContent = saveName;
+        document.getElementById("loadGraphName").appendChild(addOption);
+    }
+   
+    // function saveGraph(){
+    //     // saveNodesAndEdges(Nodes, Edges);
+    // }
+    // function loadGraph(){
+    //     // loadNodesAndEdges(Nodes, Edges);
+    // }
+
+
+
     function changeColor(){
         let clickedNodeIndex = getNodeIndex(Nodes, clickedNodeId);
         Nodes[clickedNodeIndex].c = (Nodes[clickedNodeIndex].c+1)%3 ;
@@ -239,7 +333,6 @@
         ctx.beginPath();
         ctx.lineWidth = 2;
         if(clickedNodeId==id) {
-            console.log(id)
             ctx.arc(x, y, 2*circleSize*changeCircleSize/100, 0, Math.PI * 2);
         }
         else ctx.arc(x, y, circleSize*changeCircleSize/100, 0, Math.PI * 2);
@@ -300,22 +393,20 @@
         for(let i=0;i<Nodes.length;i++){
             drawNodeStatus(Nodes[i]);
         }
-        // console.log(Nodes[0])
     }
 
     function redrawEdges(){
-        for(let i=0;i<Nodes.length;i++){
-            //辺の長さを制限
-            let neighborNodes = getNeighborNodes(Nodes[i], Nodes);
-            neighborNodes.forEach(neighbor=>{
-                let nowDist = Math.sqrt((Nodes[i].x-neighbor.x)**2 + (Nodes[i].y-neighbor.y)**2);
-                if(nowDist>=SPRINGLENGTH*10){
-                    // console.log("やぁ");
-                    Nodes[i].x = neighbor.x + (Nodes[i].x-neighbor.x) * SPRINGLENGTH / nowDist;
-                    Nodes[i].y = neighbor.y + (Nodes[i].y-neighbor.y) * SPRINGLENGTH / nowDist;
-                }
-            })
-        }
+        // for(let i=0;i<Nodes.length;i++){
+        //     //辺の長さを制限
+        //     let neighborNodes = getNeighborNodes(Nodes[i], Nodes);
+        //     neighborNodes.forEach(neighbor=>{
+        //         let nowDist = Math.sqrt((Nodes[i].x-neighbor.x)**2 + (Nodes[i].y-neighbor.y)**2);
+        //         if(nowDist>=SPRINGLENGTH*10){
+        //             Nodes[i].x = neighbor.x + (Nodes[i].x-neighbor.x) * SPRINGLENGTH / nowDist;
+        //             Nodes[i].y = neighbor.y + (Nodes[i].y-neighbor.y) * SPRINGLENGTH / nowDist;
+        //         }
+        //     })
+        // }
         Edges.forEach(Edge => {
             drawEdge(Edge.start, Edge.end);
         });
@@ -427,7 +518,6 @@
                 let gF = -1 * (GRAVITY * changeGravitySize/100) * (gDst*gDst);
                 fx += gF * gDstX/gDst;
                 fy += gF * gDstY/gDst;
-                // console.log(gF);
 
                 Nodes[i].vx = (Nodes[i].vx + fx) * FRICTION; //摩擦
                 Nodes[i].vy = (Nodes[i].vy + fy) * FRICTION; //摩擦
@@ -463,7 +553,7 @@
             COULOMB = COULOMB * ((1 / (1+zoomScale))**2);
             GRAVITY = GRAVITY /  (1 / (1+zoomScale))**2;
         }
-        // console.log(COULOMB);
+    
         //エッジの長さ上限変更
         SPRINGLENGTH = circleSize * 4;
         //ノード大きさの変更
@@ -538,14 +628,19 @@
                 }
             });
             if(clickedNodeId !== -1){ //ノードがクリックされた場合
-                if(!isDrawingEdge){
+                if(!isDrawingEdge){ //エッジの始点になりうる
                     edgeStartNodeId = clickedNodeId;
                     isDrawingEdge = true;
-                }else{
+                }else{ //エッジの終点になりうる
                     if(edgeStartNodeId !== clickedNodeId){ //エッジ追加
                         if(isUndid) clearRedoStack();
                         pushUndoStack(); //前の状態保存
-                        Edges.push({start: edgeStartNodeId, end: clickedNodeId});
+                        let edgeIndex = findEdgeIndex(edgeStartNodeId, clickedNodeId);
+                        if(edgeIndex!=-1){ //エッジが既に存在するなら
+                            Edges.splice(edgeIndex,1);
+                        }else{ //エッジがまだ存在しないなら
+                            Edges.push({start: edgeStartNodeId, end: clickedNodeId});
+                        }
                         clickedNodeId = -1;
                     }
                     isDrawingEdge = false;
@@ -556,6 +651,21 @@
         isFinishedMove = true;
         redrawCanvas();
     }
+
+    function findEdgeIndex(edgeStartNodeId, clickedNodeId) {
+        // エッジを探索するために Edges 配列をループする
+        for (let i = 0; i < Edges.length; i++) {
+            let edge = Edges[i];
+            // エッジが既に存在するかどうかを確認
+            if (
+                (edge.start === edgeStartNodeId && edge.end === clickedNodeId) ||
+                (edge.start === clickedNodeId && edge.end === edgeStartNodeId)
+            ) {
+                return i; // エッジが存在する場合はそのインデックスを返す
+            }
+        }
+        return -1; // エッジが存在しない場合は -1 を返す
+    }   
 
     // Function to handle mouse click
     function handleDoubleClick(event) {
@@ -659,7 +769,7 @@
         let graphComplex = document.getElementById("graphComplex").value;
         Nodes = [];
         Edges = [];
-        // console.log("start make cactus");
+       
         let camvasSize = getCanvasSize();
         let beginNode = new Node(Math.random()*camvasSize, Math.random()*camvasSize, nodeIdNow++, getRandomX(), 0, 0, 0); //開始ノード作成
         Nodes.push(beginNode);//ノードとして登録
@@ -674,7 +784,7 @@
         let graphComplex = document.getElementById("graphComplex").value;
         Nodes = [];
         Edges = [];
-        // console.log("start make uncactus");
+       
         let camvasSize = getCanvasSize();
         let beginNode = getRandomNode();
         Nodes.push(beginNode);//ノードとして登録
@@ -733,6 +843,8 @@
             let childrenSize = Math.floor(Math.random()*randomPathLength); //子の数決定
             for(let i=0;i<childrenSize;i++){
                 let childNode = getRandomNode();//子生成
+                // childNode.x = parentNode.x + Math.floor(Math.random()*circleSize*8)-circleSize*4;
+                // childNode.y = parentNode.y + Math.floor(Math.random()*circleSize*8)-circleSize*4;
                 Nodes.push(childNode);//子をノードとして登録
                 Edges.push({start: parentNode.id, end: childNode.id});//エッジ作成
                 treeNodes.push(childNode);
@@ -748,6 +860,8 @@
         do{
             let parentNode = nextNode;//最後のノードを取得
             let childNode = getRandomNode(); 
+            // childNode.x = parentNode.x + Math.floor(Math.random()*circleSize*8)-circleSize*4;
+            // childNode.y = parentNode.y + Math.floor(Math.random()*circleSize*8)-circleSize*4;
             Nodes.push(childNode);
             Edges.push({start: parentNode.id, end: childNode.id});
             nextNode = childNode;//最後のノード更新
@@ -758,7 +872,11 @@
 
     function getRandomNode(){
         let camvasSize = getCanvasSize();
-        return new Node(Math.random()*camvasSize, Math.random()*camvasSize, nodeIdNow++, getRandomX(), 0, 0, 0);
+        return new Node(Math.random()*camvasSize, Math.random()*camvasSize, nodeIdNow++, getRandomX(), getRandomColor(), 0, 0);
+    }
+
+    function getRandomColor(){
+        return Math.floor(Math.random()*3);
     }
 
     function isIdInNodes(nodes, id){
@@ -1104,7 +1222,7 @@
         childNodes.forEach(node=>{
             teststr+=node.id+" ";
         })
-        // console.log(teststr+"]")
+        
         childNodes.forEach(node=>{
             if((!searchPathStack.includes(nodeId)&&searchPathStack.includes(node.id)) || (searchPathStack.includes(nodeId)&&!searchPathStack.includes(node.id))||(!searchPathStack.includes(nodeId)&&!searchPathStack.includes(node.id))){ //スタートの隣のゴールではない
                 
