@@ -14,6 +14,7 @@
         height: 100%;
         display: flex;
         column-gap: 1%;
+        background-color: antiquewhite;
     }
     /* #canvasContainer{
         display: flex;
@@ -28,10 +29,12 @@
         flex-shrink: 0;
     }
     #processArea{
-        height: 50%;
+        border: 1px solid gray;
+        height: 45%;
         width: 200pt;
         overflow: scroll;
-        white-space: pre-line
+        white-space: pre-line;
+        background-color: azure;
     }
     /* #myButtons{
         height: 25%; */
@@ -42,6 +45,7 @@
         cursor: default;
         border-radius: 40px 40px 40px 40px;
         /* margin: 5% auto; */
+        background-color: azure;
     }
 </style>
 </head>
@@ -73,6 +77,7 @@
             <!-- <input type="button" value="do minimize" onclick="redrawMinimumGraph()"> -->
             <input type="button" value="coloring graph" onclick="switchColoringGraph()">
             <input type="button" value="step coloring graph" onclick="stepColoring()">
+            <input type="button" value="at once coloring graph" onclick="doColoring()">
             <br>
             <input type="button" value="show status" onclick="showStatus()">
             <input type="button" value="make balanced graph" onclick="switchMakeBlancedGraph()">
@@ -93,6 +98,7 @@
             <input type="button" value="undo" onclick="undo()">
             <input type="button" value="redo" onclick="redo()">
         </div>
+        <br>
         <div id="processArea"></div>
     </div>
 
