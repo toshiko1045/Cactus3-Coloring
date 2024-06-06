@@ -15,19 +15,20 @@
         display: flex;
         column-gap: 1%;
     }
-    #canvasContainer{
+    /* #canvasContainer{
         display: flex;
         justify-content: center;
         align-items: center;
-    }
+    } */
     #textAndButtonContainer{
-        height: 75%;
+        height: 90;
         justify-content: center;
         align-items: center;
-        margin: 10% auto;
+        /* margin: 10% auto; */
+        flex-shrink: 0;
     }
     #processArea{
-        height: 50%;
+        height: 65%;
         width: 200pt;
         overflow: scroll;
         white-space: pre-line
@@ -40,7 +41,7 @@
         border: 10px solid gray;
         cursor: default;
         border-radius: 40px 40px 40px 40px;
-        margin: 5% auto;
+        /* margin: 5% auto; */
     }
 </style>
 </head>
@@ -139,8 +140,8 @@
 
     function doAtFirst(){
         beforeMinBodySize = Math.min(document.body.clientHeight,document.body.clientWidth);
-        GravityX = beforeMinBodySize*3/8;
-        GravityY = beforeMinBodySize*3/8;
+        GravityX = beforeMinBodySize*9/20;
+        GravityY = beforeMinBodySize*9/20;
         resizeWindow();
         initialize();
         balanceGraphInterval = setInterval(makeBalancedGraph, 50);
@@ -160,8 +161,8 @@
 
     function resizeWindow(){ // canvasのサイズを変更
         let minSize = Math.min(document.body.clientHeight,document.body.clientWidth);
-        canvas.width = minSize*3/4;
-        canvas.height = minSize*3/4;
+        canvas.width = minSize*9/10;
+        canvas.height = minSize*9/10;
         circleSize = minSize/40;
         SPRINGLENGTH = circleSize*4;
         redrawCanvas();
