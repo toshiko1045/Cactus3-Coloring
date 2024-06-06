@@ -85,8 +85,9 @@
             save graph name : <input type="text" id="graphName">
             <input type="button" value="save" onclick="saveGraph()">
             <br>
-            load or delete graph name : <select id="loadGraphName"></select>
+            load, add, delete graph name : <select id="loadGraphName"></select>
             <input type="button" value="load" onclick="loadGraph()">
+            <input type="button" value="add" onclick="addGraph()">
             <input type="button" value="delete" onclick="deleteGraph()">
             <br>
             change node size : <input type="range" min="1" max="100" value="50" id="circleSize">
@@ -201,7 +202,22 @@
     }
 
     function popUndoStack(){
-        Nodes = nodesUndoStack.shift();
+        let beforeNodes = getNodesCopy(Nodes);
+        let nextNodes = nodesUndoStack.shift();
+        Nodes = [];
+        for(let i=0;i<nextNodes.length;i++){
+            let nowNextNode = nextNodes[i];
+            let isExistBeforeNode = false;
+            for(let j=0;j<beforeNodes.length;j++){
+                let nowBeforeNode = beforeNodes[j];
+                if(nowNextNode.id == nowBeforeNode.id){
+                    Nodes.push(new Node(nowBeforeNode.x, nowBeforeNode.y, nowNextNode.id, nowNextNode.p, nowNextNode.c, nowNextNode.vx, nowNextNode.vy));
+                    isExistBeforeNode = true;
+                    break;
+                }
+            }
+            if(!isExistBeforeNode) Nodes.push(nowNextNode.deepCopy());
+        }
         Edges = edgesUndoStack.shift();
         selectedNodes = selectedNodesUndoStack.shift();
         showResult(processTextUndoStack.shift(document.getElementById("processArea").textContent));
@@ -216,7 +232,22 @@
 
     function popRedoStack(){
         isUndid = false;
-        Nodes = nodesRedoStack.shift();
+        let beforeNodes = getNodesCopy(Nodes);
+        let nextNodes = nodesRedoStack.shift();
+        Nodes = [];
+        for(let i=0;i<nextNodes.length;i++){
+            let nowNextNode = nextNodes[i];
+            let isExistBeforeNode = false;
+            for(let j=0;j<beforeNodes.length;j++){
+                let nowBeforeNode = beforeNodes[j];
+                if(nowNextNode.id == nowBeforeNode.id){
+                    Nodes.push(new Node(nowBeforeNode.x, nowBeforeNode.y, nowNextNode.id, nowNextNode.p, nowNextNode.c, nowNextNode.vx, nowNextNode.vy));
+                    isExistBeforeNode = true;
+                    break;
+                }
+            }
+            if(!isExistBeforeNode) Nodes.push(nowNextNode.deepCopy());
+        }
         Edges = edgesRedoStack.shift();
         selectedNodes = selectedNodesRedoStack.shift();
         showResult(processTextRedoStack.shift(document.getElementById("processArea").textContent));
@@ -304,6 +335,26 @@
                 })
                 Edges = getResult.graph.edges;
                 console.log(Nodes[0]);
+            }
+        };
+    }
+    function addGraph(){
+        if(isUndid) clearRedoStack();
+        pushUndoStack(); //前の状態保存
+        let loadGraphName = document.getElementById('loadGraphName').value;
+        let tx = graphDB.transaction("graphStore", "readwrite");
+        graphStore = tx.objectStore("graphStore");
+        let getRequest = graphStore.get(loadGraphName);
+        getRequest.onsuccess = function(event) {
+            let getResult = getRequest.result;
+            if (getResult) {
+                let maxNodesId = getMaxNodesId(Nodes)+1;
+                getResult.graph.nodes.forEach((node,i)=>{
+                    Nodes.push(new Node(node.x, node.y, node.id+maxNodesId, node.p, node.c, node.vx, node.vy));
+                })
+                getResult.graph.edges.forEach(edge=>{
+                    Edges.push({start:edge.start+maxNodesId, end:edge.end+maxNodesId});
+                })
             }
         };
     }
@@ -467,6 +518,14 @@
         ctx.fillStyle = "black";
         ctx.textBaseline = "middle";
         ctx.fillText(statusText, node.x+textMesure.width/2, node.y+textMesure.actualBoundingBoxAscent+(textMesure.actualBoundingBoxAscent+textMesure.actualBoundingBoxDescent)/2);
+     }
+
+     function getMaxNodesId(nodes){
+        let maxId = 0;
+        nodes.forEach(node=>{
+            maxId = maxId>node.id?maxId:node.id;
+        })
+        return maxId;
      }
 
      function showStatus(){
@@ -743,7 +802,7 @@
             clickedNodeId = -1;
             isDrawingEdge = false;
         } else {
-            Nodes.push(new Node(x, y, nodeIdNow++, getRandomX(), 0, 0, 0)); // Add a new Node
+            Nodes.push(new Node(x, y, getMaxNodesId(Nodes)+1, getRandomX(), 0, 0, 0)); // Add a new Node
         }
 
         redrawCanvas();
@@ -824,7 +883,7 @@
         Edges = [];
        
         let camvasSize = getCanvasSize();
-        let beginNode = new Node(Math.random()*camvasSize, Math.random()*camvasSize, nodeIdNow++, getRandomX(), 0, 0, 0); //開始ノード作成
+        let beginNode = new Node(Math.random()*camvasSize, Math.random()*camvasSize, getMaxNodesId(Nodes)+1, getRandomX(), 0, 0, 0); //開始ノード作成
         Nodes.push(beginNode);//ノードとして登録
         for(let i=0;i<graphSize;i++){
             let nowNode = Nodes[Math.floor(Math.random()*Nodes.length)];//ノード選択
@@ -925,7 +984,7 @@
 
     function getRandomNode(){
         let camvasSize = getCanvasSize();
-        return new Node(Math.random()*camvasSize, Math.random()*camvasSize, nodeIdNow++, getRandomX(), getRandomColor(), 0, 0);
+        return new Node(Math.random()*camvasSize, Math.random()*camvasSize, getMaxNodesId(Nodes)+1, getRandomX(), getRandomColor(), 0, 0);
     }
 
     function getRandomColor(){
