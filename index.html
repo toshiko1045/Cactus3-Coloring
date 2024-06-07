@@ -756,6 +756,9 @@
                     isDrawingEdge = false;
                 }
                 // clickedNodeId = -1;
+            }else{ //何もないところがクリックされた場合
+                edgeStartNodeId = -1;
+                isDrawingEdge = false;
             }
         }
         isFinishedMove = true;
