@@ -593,9 +593,13 @@
                 if(selectedNodes.includes(beforeNode.id)){
                     if(beforeNode.id != nowNode.id) return null;
                     showText += beforeNode.id + " : ";
-                    if(beforeNode.p==nowNode.p && beforeNode.c==nowNode.c) showText += "not changed\n";
-                    else if(beforeNode.p!=nowNode.p && beforeNode.c==nowNode.c) showText += "x:" + beforeNode.p + " → x:" + nowNode.p + "\n";
-                    else if(beforeNode.p==nowNode.p && beforeNode.c!=nowNode.c) showText += "c:" + beforeNode.c + " → c:" + nowNode.c + "\n";
+                    // console.log(beforeNode.p+" "+beforeNode.c + ", " + nowNode.p+" "+nowNode.c)
+                    if(beforeNode.p==nowNode.p && beforeNode.c==nowNode.c) showText += "not changed";
+                    else {
+                        if(beforeNode.p!=nowNode.p) showText += "x:" + beforeNode.p + " → " + nowNode.p;
+                        if(beforeNode.c!=nowNode.c) showText += "c:" + beforeNode.c + " → " + nowNode.c;
+                    }
+                    showText += "\n";
                 }
             })
         }
@@ -1625,19 +1629,19 @@
         nowFuncName = "doColoring";
 
         do{
-            let beforeCalcNodes = getNodesCopy(Nodes);//操作前のノード達を避難
-            let calcNodes = getRandomElements(beforeCalcNodes);//ランダムで複数個のノードを取得
-            for(let i=0;i<calcNodes.length;i++){
+            let beforeCalcNodes = getNodesCopy(Nodes);//操作前の全てのノード達を避難
+            let calcNodes = getRandomElements(beforeCalcNodes);//ランダムで複数個のノードを取得 Dデーモンに選ばれたノード達
+            for(let i=0;i<calcNodes.length;i++){ //Dデーモンに選ばれたノード達を順に動作
                 //各ノードで計算, 内部情報の更新
                 calcingNode = calcNodes[i];
-                let neighborNodes = getNeighborNodes(calcingNode, beforeCalcNodes);//操作前の隣人達
-                if(isOutBiggerThan2(neighborNodes, calcingNode)){ // if Out(i)>2
-                    Nodes[getNodeIndex(Nodes, calcingNode.id)].p =  getMaxX(neighborNodes)+1;
-                }else if(isInColor(getOutEdges(neighborNodes, calcingNode), calcingNode.c)){
-                    let tempNode = Nodes[getNodeIndex(Nodes, calcingNode.id)];
-                    tempNode.c = getMinColor(getOutEdges(neighborNodes, calcingNode));
-                    Nodes[getNodeIndex(Nodes, calcingNode.id)] = tempNode.deepCopy();
+                let neighborNodes = getNeighborNodes(calcingNode, beforeCalcNodes);//操作前の隣人達 idを元に取得している
+                if(isOutBiggerThan2(neighborNodes, calcingNode)){ // if Out(i)>2 idとxの値を元に計算
+                    calcingNode.p = getMaxX(neighborNodes)+1; //計算中のノードの情報を更新
                 }
+                if(!isOutBiggerThan2(neighborNodes, calcingNode) && isInColor(getOutEdges(neighborNodes, calcingNode), calcingNode.c)){
+                    calcingNode.c = getMinColor(getOutEdges(neighborNodes, calcingNode));
+                }
+                Nodes[getNodeIndex(Nodes, calcingNode.id)] = calcingNode.deepCopy(); //計算終わったのでNodesに保存 Nodesは参照されないから大丈夫
             }
             // redrawCanvas();
         }while(isColoring());//彩色が終わるまで
@@ -1670,13 +1674,16 @@
                 calcingNode = calcNodes[i];
                 selectedNodes.push(calcingNode.id); //選択されたノードとして登録
                 let neighborNodes = getNeighborNodes(calcingNode, beforeCalcNodes);//操作前の隣人達
+                let testText = "" + isOutBiggerThan2(neighborNodes, calcingNode) + " ";
                 if(isOutBiggerThan2(neighborNodes, calcingNode)){ // if Out(i)>2
-                    Nodes[getNodeIndex(Nodes, calcingNode.id)].p =  getMaxX(neighborNodes)+1;
-                }else if(isInColor(getOutEdges(neighborNodes, calcingNode), calcingNode.c)){
-                    let tempNode = Nodes[getNodeIndex(Nodes, calcingNode.id)];
-                    tempNode.c = getMinColor(getOutEdges(neighborNodes, calcingNode));
-                    Nodes[getNodeIndex(Nodes, calcingNode.id)] = tempNode.deepCopy();
+                    calcingNode.p = getMaxX(neighborNodes)+1; //計算中のノードの情報を更新 出次数が0になる → 下のifを満たさない
                 }
+                testText += isOutBiggerThan2(neighborNodes, calcingNode); 
+                console.log(testText)
+                if(!isOutBiggerThan2(neighborNodes, calcingNode) && isInColor(getOutEdges(neighborNodes, calcingNode), calcingNode.c)){
+                    calcingNode.c = getMinColor(getOutEdges(neighborNodes, calcingNode));
+                }
+                Nodes[getNodeIndex(Nodes, calcingNode.id)] = calcingNode.deepCopy();
             }
             showProcessLog(beforeCalcNodes, Nodes);
         }
@@ -1698,11 +1705,11 @@
         let tempColors = [0,1,2];
         outNodes.forEach(node=>{
             let res = tempColors.indexOf(node.c);
-            if(res!==-1){
+            if(res!==-1){//存在すれば消す
                 tempColors.splice(res,1);
             }
         })
-        let res = tempColors.reduce(function (a, b) {return Math.min(a, b);}); 
+        let res = tempColors.reduce(function (a, b) {return Math.min(a, b);}); //残ったものの中で最小の値
         return res;
     }
 
@@ -1750,9 +1757,17 @@
     }
 
     function getRandomElements(array){
-        return array.filter(function(){
-            return Math.random()>0.5;
-        });
+        let arLen = array.length;
+        let indexAr = [];
+        for(let i=0;i<arLen;i++){indexAr.push(i);}
+        let retArr = [];
+        let retArrLen = Math.floor(Math.random() * (arLen - 1 + 1) + 1);
+        for(let i=0;i<retArrLen;i++){
+            let pushIndexArIndex = indexAr[Math.floor(Math.random()*indexAr.length)];
+            retArr.push(array[pushIndexArIndex].deepCopy());
+            indexAr.splice(pushIndexArIndex,1);
+        }
+        return retArr;
     }
 
     function getEdgesCopy(edges){
