@@ -61,8 +61,8 @@
             <br>
             random x range : <input type="number" value=15 id="xRange">
             <br>
-            <input type="button" value="make random cactus graph" onclick="redrawRandomCactusGraph()">
-            <input type="button" value="make random uncactus graph" onclick="redrawRandomUnCactusGraph()">
+            <input type="button" value="auto make cactus graph" onclick="redrawRandomCactusGraph()">
+            <!-- <input type="button" value="auto make uncactus graph" onclick="redrawRandomUnCactusGraph()"> -->
             <input type="button" value="clear" onclick="clearGraph()">
             <br>
             <input type="button" value="change color" onclick="changeColor()">
@@ -75,9 +75,9 @@
             <!-- <input type="button" value="test check cactus graph" onclick="doTestCheckCactusGraph()"> -->
             <!-- <input type="button" value="test check uncactus graph" onclick="doTestCheckUnCactusGraph()"> -->
             <!-- <input type="button" value="do minimize" onclick="redrawMinimumGraph()"> -->
-            <input type="button" value="coloring graph" onclick="switchColoringGraph()">
+            <input type="button" value="auto coloring graph" onclick="switchColoringGraph()">
             <input type="button" value="step coloring graph" onclick="stepColoring()">
-            <input type="button" value="at once coloring graph" onclick="doColoring()">
+            <input type="button" value="skip coloring graph" onclick="doColoring()">
             <br>
             <input type="button" value="show status" onclick="showStatus()">
             <input type="button" value="make balanced graph" onclick="switchMakeBlancedGraph()">
@@ -92,7 +92,7 @@
             <br>
             change node size : <input type="range" min="1" max="100" value="50" id="circleSize">
             <br>
-            change gravity size : <input type="range" min="1" max="100" value="100" id="gravitySize">
+            change gravity size : <input type="range" min="1" max="100" value="50" id="gravitySize">
             <br>
             change coulomb size : <input type="range" min="1" max="100" value="1" id="coulombSize">
             <br>
@@ -672,7 +672,7 @@
                 let gDstX =  Nodes[i].x-GravityX;
                 let gDstY =  Nodes[i].y-GravityY;
                 let gDst = Math.sqrt(gDstX*gDstX + gDstY*gDstY);
-                let gF = -1 * (GRAVITY * changeGravitySize/100) * (gDst*gDst);
+                let gF = -1 * (GRAVITY * changeGravitySize/50) * (gDst*gDst);
                 fx += gF * gDstX/gDst;
                 fy += gF * gDstY/gDst;
 
@@ -700,7 +700,7 @@
             circleSize += circleSize*zoomScale;
             COULOMB = COULOMB * ((1+zoomScale)**2);
             GRAVITY = GRAVITY /  (1+zoomScale)**2;
-        }else if(event.wheelDelta<0 && cntZoomNum>=-7){
+        }else if(event.wheelDelta<0 && cntZoomNum>=-10){
             cntZoomNum--;
             for(let i=0;i<Nodes.length;i++){
                 Nodes[i].x -= (Nodes[i].x - x) * zoomScale / (1+zoomScale);
