@@ -380,7 +380,8 @@
                     Nodes.push(new Node(node.x, node.y, node.id+maxNodesId, node.p, node.c, node.vx, node.vy));
                 })
                 getResult.graph.edges.forEach(edge=>{
-                    Edges.push({start:edge.start+maxNodesId, end:edge.end+maxNodesId});
+                    addEdge(edge.start+maxNodesId, edge.end+maxNodesId);
+                    // Edges.push({start:edge.start+maxNodesId, end:edge.end+maxNodesId});
                 })
                 selectedNodes = [];
                 showResult("add : "+loadGraphName);
@@ -450,6 +451,7 @@
         let clickedNodeIndex = getNodeIndex(Nodes, clickedNodeId);
         let showText = "" + Nodes[clickedNodeIndex].id + " : x:" + Nodes[clickedNodeIndex].p + " → x:";
         Nodes[clickedNodeIndex].p = changedX ;
+        updateDirectedEdge(Nodes[clickedNodeIndex]);
         showText += Nodes[clickedNodeIndex].p;
         selectedNodes = [];
         showResult(showText);
