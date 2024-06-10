@@ -454,6 +454,7 @@
         showText += Nodes[clickedNodeIndex].c;
         selectedNodes = [];
         showResult(showText);
+        redrawCanvas()
     }
 
     function changeX(){
@@ -469,6 +470,7 @@
         showText += Nodes[clickedNodeIndex].p;
         selectedNodes = [];
         showResult(showText);
+        redrawCanvas();
     }
 
     function drawNode(x, y, c, id) { //円を描写
