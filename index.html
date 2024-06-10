@@ -128,7 +128,7 @@
     let circleSize = 0;
     let nodeIdNow = 0;
     let Color = [0,1,2];//赤, 青, 黃
-    let colorName = ["red", "blue", "yellow"]
+    let colorName = ["#A9D7E2", "#D0E4A6", "#FFE39D"]
     let beforeMinBodySize = 0;
     let changeCircleSize = 50;
     let changeGravitySize = 100;
@@ -638,7 +638,7 @@
 
      function showStatus(){
         isShowStatus = !isShowStatus;
-        if(isShowStatus)redrawNodes(Nodes);
+        redrawCanvas();
      }
 
      function showResult(text){
@@ -1848,7 +1848,7 @@
     }
 
     function getRandomElements(array){
-        let arLen = array.length;
+        let arLen = array.length; 
         let indexAr = [];
         for(let i=0;i<arLen;i++){indexAr.push(i);}
         let retArr = [];
