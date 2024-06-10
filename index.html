@@ -459,7 +459,8 @@
         let canvasSize = Math.min(document.body.clientHeight,document.body.clientWidth);
         if(selectedNodes.includes(id)) {
             ctx.beginPath();
-            ctx.arc(x, y, (7/5)*circleSize*changeCircleSize/50, 0, Math.PI * 2);
+            if(clickedNodeId==id) ctx.arc(x, y, 2*(7/5)*circleSize*changeCircleSize/50, 0, Math.PI * 2);
+            else ctx.arc(x, y, (7/5)*circleSize*changeCircleSize/50, 0, Math.PI * 2);
             ctx.fillStyle = "white";
             ctx.fill();
             ctx.strokeStyle = 'black'; 
@@ -468,10 +469,11 @@
         }
         ctx.beginPath();
         ctx.lineWidth = 2;
-        if(clickedNodeId==id) {
+        if(clickedNodeId==id) {//クリックされた時
             ctx.arc(x, y, 2*circleSize*changeCircleSize/50, 0, Math.PI * 2);
+        }else { //クリックされてないとき
+            ctx.arc(x, y, circleSize*changeCircleSize/50, 0, Math.PI * 2);
         }
-        else ctx.arc(x, y, circleSize*changeCircleSize/50, 0, Math.PI * 2);
         ctx.fillStyle = colorName[c];
         ctx.fill();
         ctx.strokeStyle = 'black'; 
@@ -494,7 +496,42 @@
         let yj = Nodes[NodeJ].y;
         drawLine(xi, yi, xj, yj);
         // drawSquare((xi+xj)/2-5, (yi+yj)/2-5, 10);
-      
+    }
+
+    function drawDirectedEdge(i, j){
+        let NodeI = getNodeIndex(Nodes, i);
+        let NodeJ = getNodeIndex(Nodes, j);
+        let xi = Nodes[NodeI].x;
+        let yi = Nodes[NodeI].y;
+        let xj = Nodes[NodeJ].x;
+        let yj = Nodes[NodeJ].y;
+        drawLine(xi, yi, xj, yj);
+
+        //ノードの半径を計算
+        let nodeR = circleSize*changeCircleSize/50;
+        if(selectedNodes.includes(j)){
+            if(clickedNodeId==j) nodeR *= 2*(7/5);
+            else nodeR *= (7/5);
+        }else{
+            if(clickedNodeId==j) nodeR *= 2;
+        }
+        //エッジの長さ
+        let edgeLen = Math.sqrt((xi-xj)**2 + (yi-yj)**2);
+        //矢印の終端
+        let edgeEndX = xi + (xj-xi)*(edgeLen-nodeR)/edgeLen;
+        let edgeEndY = yi + (yj-yi)*(edgeLen-nodeR)/edgeLen;
+        // edgeEndX = xj;
+        // edgeEndY = yj;
+
+        let arrowLen = nodeR;
+        let theta = Math.atan2(yj-yi, xj-xi) //始点を原点に移動して, 角度を計算
+        let rad = 30 * Math.PI/180 //矢印先の傾き(PI/2とかPI/4とか)
+        let arrowEnd1X = edgeEndX - arrowLen * Math.cos(theta + rad);
+        let arrowEnd1Y = edgeEndY - arrowLen * Math.sin(theta + rad);
+        let arrowEnd2X = edgeEndX - arrowLen * Math.cos(theta - rad);
+        let arrowEnd2Y = edgeEndY - arrowLen * Math.sin(theta - rad);
+        drawLine(edgeEndX, edgeEndY, arrowEnd1X, arrowEnd1Y);
+        drawLine(edgeEndX, edgeEndY, arrowEnd2X, arrowEnd2Y);
     }
 
     function drawLine(x0, y0, x1, y1){
@@ -543,8 +580,11 @@
         //         }
         //     })
         // }
+        // Edges.forEach(Edge => {
+        //     drawEdge(Edge.start, Edge.end);
+        // });
         Edges.forEach(Edge => {
-            drawEdge(Edge.start, Edge.end);
+            drawDirectedEdge(Edge.start, Edge.end);
         });
     }
 
@@ -799,14 +839,17 @@
                         nowFuncName = "handleClick";
 
                         let edgeIndex = findEdgeIndex(edgeStartNodeId, clickedNodeId);
-                        if(edgeIndex!=-1){ //エッジが既に存在するなら
+                        if(edgeIndex!=-1){ //エッジが既に存在するなら エッジ削除
                             Edges.splice(edgeIndex,1);
                             selectedNodes = [];
                             showResult("delete edge : ("+edgeStartNodeId+","+clickedNodeId+")");
-                        }else{ //エッジがまだ存在しないなら
-                            Edges.push({start: edgeStartNodeId, end: clickedNodeId});
+                        }else{ //エッジがまだ存在しないなら エッジ追加
+                            // (x,id)の辞書順で有向エッジ追加
+                            addEdge(edgeStartNodeId, clickedNodeId);
+                            // Edges.push({start: edgeStartNodeId, end: clickedNodeId});
+                            let addedEdge = Edges[findEdgeIndex(edgeStartNodeId, clickedNodeId)];
                             selectedNodes = [];
-                            showResult("add edge : ("+edgeStartNodeId+","+clickedNodeId+")");
+                            showResult("add edge : ("+addedEdge.start+","+addedEdge.end+")");
                         }
                         clickedNodeId = -1;
                     }
@@ -820,6 +863,25 @@
         }
         isFinishedMove = true;
         redrawCanvas();
+    }
+
+    function updateDirectedEdge(node){ //Nodesにおけるnodeの辺を更新
+        let neighborNodes = getNeighborNodes(node, Nodes);
+        neighborNodes.forEach((neighbor,i)=>{
+            Edges.splice(findEdgeIndex(neighbor.id, node.id),1);
+            addEdge(neighbor.id, node.id);
+        })
+    }
+
+    function addEdge(i,j){
+        let edgeStartNode = Nodes[getNodeIndex(Nodes, i)];
+        let edgeEndNode = Nodes[getNodeIndex(Nodes, j)];
+        if(edgeStartNode.p<edgeEndNode.p) Edges.push({start: edgeStartNode.id, end: edgeEndNode.id});
+        else if(edgeStartNode.p>edgeEndNode.p) Edges.push({start: edgeEndNode.id, end: edgeStartNode.id});
+        else if(edgeStartNode.p==edgeEndNode.p){
+            if(edgeStartNode.id<edgeEndNode.id) Edges.push({start: edgeStartNode.id, end: edgeEndNode.id});
+            else if(edgeStartNode.id>edgeEndNode.id) Edges.push({start: edgeEndNode.id, end: edgeStartNode.id});
+        }
     }
 
     function findEdgeIndex(edgeStartNodeId, clickedNodeId) {
@@ -1032,7 +1094,8 @@
                 // childNode.x = parentNode.x + Math.floor(Math.random()*circleSize*8)-circleSize*4;
                 // childNode.y = parentNode.y + Math.floor(Math.random()*circleSize*8)-circleSize*4;
                 Nodes.push(childNode);//子をノードとして登録
-                Edges.push({start: parentNode.id, end: childNode.id});//エッジ作成
+                // Edges.push({start: parentNode.id, end: childNode.id});//エッジ作成
+                addEdge(parentNode.id, childNode.id);
                 treeNodes.push(childNode);
                 cnt += 1;
             }
@@ -1049,7 +1112,8 @@
             // childNode.x = parentNode.x + Math.floor(Math.random()*circleSize*8)-circleSize*4;
             // childNode.y = parentNode.y + Math.floor(Math.random()*circleSize*8)-circleSize*4;
             Nodes.push(childNode);
-            Edges.push({start: parentNode.id, end: childNode.id});
+            // Edges.push({start: parentNode.id, end: childNode.id});
+            addEdge(parentNode.id, childNode.id);
             nextNode = childNode;//最後のノード更新
             cnt += 1;
         }while(cnt<randomCycleLength);
@@ -1642,6 +1706,7 @@
                     calcingNode.c = getMinColor(getOutEdges(neighborNodes, calcingNode));
                 }
                 Nodes[getNodeIndex(Nodes, calcingNode.id)] = calcingNode.deepCopy(); //計算終わったのでNodesに保存 Nodesは参照されないから大丈夫
+                updateDirectedEdge(calcingNode);
             }
             // redrawCanvas();
         }while(isColoring());//彩色が終わるまで
@@ -1684,6 +1749,7 @@
                     calcingNode.c = getMinColor(getOutEdges(neighborNodes, calcingNode));
                 }
                 Nodes[getNodeIndex(Nodes, calcingNode.id)] = calcingNode.deepCopy();
+                updateDirectedEdge(calcingNode);
             }
             showProcessLog(beforeCalcNodes, Nodes);
         }
