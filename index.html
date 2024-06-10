@@ -1009,6 +1009,8 @@
     showStatusCheckbox.addEventListener("change", showStatus);
     let makeBalancedGraphCheckbox = document.getElementById("isMakeBalancedGraph");
     makeBalancedGraphCheckbox.addEventListener("change", switchMakeBlancedGraph);
+    let showDirectedEdgeCheckbox = document.getElementById("isDirectedEdge");
+    showDirectedEdgeCheckbox.addEventListener("change", redrawCanvas);
 
     // make graph
     function redrawRandomCactusGraph(){
