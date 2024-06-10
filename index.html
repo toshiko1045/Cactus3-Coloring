@@ -372,6 +372,7 @@
                 Edges = getResult.graph.edges;
                 selectedNodes = [];
                 showResult("load : "+loadGraphName);
+                redrawCanvas();
             }
         };
     }
@@ -397,6 +398,7 @@
                 })
                 selectedNodes = [];
                 showResult("add : "+loadGraphName);
+                redrawCanvas();
             }
         };
     }
