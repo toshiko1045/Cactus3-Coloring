@@ -845,7 +845,7 @@
                 const dx = x - Node.x;
                 const dy = y - Node.y;
                 const distance = Math.sqrt(dx * dx + dy * dy);
-                if (distance < circleSize) {
+                if (distance < circleSize*changeCircleSize/50) {
                     clickedNodeId = Node.id;
                 }
             });
@@ -935,7 +935,7 @@
             const dx = x - Node.x;
             const dy = y - Node.y;
             const distance = Math.sqrt(dx * dx + dy * dy);
-            if (distance < circleSize) {
+            if (distance < circleSize*changeCircleSize/50) {
                 clickedNodeId = Node.id;
             }
         });
