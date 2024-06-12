@@ -12,9 +12,11 @@
     body {
         width: 100%;
         height: 100%;
+        background-color: antiquewhite;
+    }
+    #bodyContents{
         display: flex;
         column-gap: 1%;
-        background-color: antiquewhite;
     }
     /* #canvasContainer{
         display: flex;
@@ -50,71 +52,74 @@
 </style>
 </head>
 <body>
-    <div id="canvasContainer">
-        <canvas id="myCanvas"></canvas>
-        <br>
-        <font size="2">・add or delete node : double click</font>
-        <!-- <br> -->
-        <font size="2"> / ・add or delete edge : click</font>
-        <!-- <br> -->
-        <font size="2"> / ・undo and redo : available for change graph state</font>
-    </div>
-    <div id="textAndButtonContainer">
-        <div id="myButtons">
-            connected graph numb : <input type="number" value=7 id="graphSize">
+    <div id="bodyContents">
+        <div id="canvasContainer">
+            <canvas id="myCanvas"></canvas>
             <br>
-            connected graph size : <input type="number" value=7 id="graphComplex">
-            <br>
-            random x range : <input type="number" value=15 id="xRange">
-            <br>
-            <input type="button" value="auto make cactus graph" onclick="redrawRandomCactusGraph()">
-            <!-- <input type="button" value="auto make uncactus graph" onclick="redrawRandomUnCactusGraph()"> -->
-            <input type="button" value="clear" onclick="clearGraph()">
-            <br>
-            <input type="button" value="change color" onclick="changeColor()">
-            <br>
-            x value : <input type="number" value=0 id="changedX">
-            <input type="button" value="change x" onclick="changeX()">
-            <br>
-            <input type="button" value="check cactus graph" onclick="doCheckCactusGraph()">
-            <br>
-            <!-- <input type="button" value="test check cactus graph" onclick="doTestCheckCactusGraph()"> -->
-            <!-- <input type="button" value="test check uncactus graph" onclick="doTestCheckUnCactusGraph()"> -->
-            <!-- <input type="button" value="do minimize" onclick="redrawMinimumGraph()"> -->
-            <input type="button" value="auto coloring graph" onclick="switchColoringGraph()">
-            <input type="button" value="step coloring graph" onclick="stepColoring()">
-            <input type="button" value="skip coloring graph" onclick="doColoring()">
-            <br>
-            show directed edge : <input type="checkbox" id="isDirectedEdge">
-            <br>
-            show status : <input type="checkbox" id="isShowStatus">
-            <br>
-            make balanced graph : <input type="checkbox" id="isMakeBalancedGraph">
-            
-            <!-- <input type="button" value="show status" onclick="showStatus()"> -->
-            <!-- <input type="button" value="make balanced graph" onclick="switchMakeBlancedGraph()"> -->
-            <br>
-            save graph name : <input type="text" id="graphName">
-            <input type="button" value="save" onclick="saveGraph()">
-            <br>
-            load, add, delete graph name : <select id="loadGraphName"></select>
-            <input type="button" value="load" onclick="loadGraph()">
-            <input type="button" value="add" onclick="addGraph()">
-            <input type="button" value="delete" onclick="deleteGraph()">
-            <br>
-            change node size : <input type="range" min="1" max="100" value="50" id="circleSize">
-            <br>
-            change gravity size : <input type="range" min="1" max="100" value="50" id="gravitySize">
-            <br>
-            change coulomb size : <input type="range" min="1" max="100" value="1" id="coulombSize">
-            <br>
-            <input type="button" value="undo" onclick="undo()">
-            <input type="button" value="redo" onclick="redo()">
+            <font size="2">・add or delete node : double click</font>
+            <!-- <br> -->
+            <font size="2"> / ・add or delete edge : click</font>
+            <!-- <br> -->
+            <font size="2"> / ・undo and redo : available for change graph state</font>
         </div>
-        <br>
-        <div id="processArea"></div>
+        <div id="textAndButtonContainer">
+            <div id="myButtons">
+                connected graph numb : <input type="number" value=7 id="graphSize">
+                <br>
+                connected graph size : <input type="number" value=7 id="graphComplex">
+                <br>
+                random x range : <input type="number" value=15 id="xRange">
+                <br>
+                <input type="button" value="auto make cactus graph" onclick="redrawRandomCactusGraph()">
+                <!-- <input type="button" value="auto make uncactus graph" onclick="redrawRandomUnCactusGraph()"> -->
+                <input type="button" value="clear" onclick="clearGraph()">
+                <br>
+                <input type="button" value="change color" onclick="changeColor()">
+                <br>
+                x value : <input type="number" value=0 id="changedX">
+                <input type="button" value="change x" onclick="changeX()">
+                <br>
+                <input type="button" value="check cactus graph" onclick="doCheckCactusGraph()">
+                <br>
+                <!-- <input type="button" value="test check cactus graph" onclick="doTestCheckCactusGraph()"> -->
+                <!-- <input type="button" value="test check uncactus graph" onclick="doTestCheckUnCactusGraph()"> -->
+                <!-- <input type="button" value="do minimize" onclick="redrawMinimumGraph()"> -->
+                <input type="button" value="auto coloring graph" onclick="switchColoringGraph()">
+                <input type="button" value="step coloring graph" onclick="stepColoring()">
+                <input type="button" value="skip coloring graph" onclick="doColoring()">
+                <br>
+                show directed edge : <input type="checkbox" id="isDirectedEdge">
+                <br>
+                show status : <input type="checkbox" id="isShowStatus">
+                <br>
+                make balanced graph : <input type="checkbox" id="isMakeBalancedGraph">
+                
+                <!-- <input type="button" value="show status" onclick="showStatus()"> -->
+                <!-- <input type="button" value="make balanced graph" onclick="switchMakeBlancedGraph()"> -->
+                <br>
+                save graph name : <input type="text" id="graphName">
+                <input type="button" value="save" onclick="saveGraph()">
+                <br>
+                load, add, delete graph name : <select id="loadGraphName"></select>
+                <input type="button" value="load" onclick="loadGraph()">
+                <input type="button" value="add" onclick="addGraph()">
+                <input type="button" value="delete" onclick="deleteGraph()">
+                <br>
+                change node size : <input type="range" min="1" max="100" value="50" id="circleSize">
+                <br>
+                change gravity size : <input type="range" min="1" max="100" value="50" id="gravitySize">
+                <br>
+                change coulomb size : <input type="range" min="1" max="100" value="1" id="coulombSize">
+                <br>
+                <input type="button" value="undo" onclick="undo()">
+                <input type="button" value="redo" onclick="redo()">
+            </div>
+            <br>
+            <div id="processArea"></div>
+        </div>
     </div>
-
+    <footer>
+    </footer>
 <script>
     const canvas = document.getElementById('myCanvas');
     const ctx = canvas.getContext('2d');
@@ -164,6 +169,14 @@
     let nowFuncName = "";
     let graphDB = null;
     let graphStore = null;
+    let canvasScale = 9/10;
+    let circleScale = 1/40;
+    let springScale = 4;
+    let selectedCircleScale = 7/5;
+    let initialCircleSizeScale = 50;
+    let initialGravitySizeScale = 50;
+    let zoomUpper = 7;
+    let zoomLower = -10;
 
     let visitTime = {};
 
@@ -190,10 +203,10 @@
 
     function resizeWindow(){ // canvasのサイズを変更
         let minSize = Math.min(document.body.clientHeight,document.body.clientWidth);
-        canvas.width = minSize*9/10;
-        canvas.height = minSize*9/10;
-        circleSize = minSize/40;
-        SPRINGLENGTH = circleSize*4;
+        canvas.width = minSize*canvasScale;
+        canvas.height = minSize*canvasScale;
+        circleSize = minSize*circleScale;
+        SPRINGLENGTH = circleSize*springScale;
         redrawCanvas();
         beforeMinBodySize = minSize; //描画後に今のcanvasのサイズを保存
     }
@@ -445,6 +458,7 @@
     }
 
     function changeColor(){
+        if(clickedNodeId==-1) return null;
         if(isUndid) clearRedoStack();
         pushUndoStack(); //前の状態保存
         nowFuncName = "changeColor";
@@ -453,11 +467,13 @@
         Nodes[clickedNodeIndex].c = (Nodes[clickedNodeIndex].c+1)%3 ;
         showText += Nodes[clickedNodeIndex].c;
         selectedNodes = [];
+        clickedNodeId = -1;
         showResult(showText);
         redrawCanvas()
     }
 
     function changeX(){
+        if(clickedNodeId==-1) return null;
         if(isUndid) clearRedoStack();
         pushUndoStack(); //前の状態保存
         nowFuncName = "changeX";
@@ -469,6 +485,7 @@
         updateDirectedEdge(Nodes[clickedNodeIndex]);
         showText += Nodes[clickedNodeIndex].p;
         selectedNodes = [];
+        clickedNodeId = -1;
         showResult(showText);
         redrawCanvas();
     }
@@ -477,8 +494,8 @@
         let canvasSize = Math.min(document.body.clientHeight,document.body.clientWidth);
         if(selectedNodes.includes(id)) {
             ctx.beginPath();
-            if(clickedNodeId==id) ctx.arc(x, y, 2*(7/5)*circleSize*changeCircleSize/50, 0, Math.PI * 2);
-            else ctx.arc(x, y, (7/5)*circleSize*changeCircleSize/50, 0, Math.PI * 2);
+            if(clickedNodeId==id) ctx.arc(x, y, 2*(selectedCircleScale)*circleSize*changeCircleSize/initialCircleSizeScale, 0, Math.PI * 2);
+            else ctx.arc(x, y, (selectedCircleScale)*circleSize*changeCircleSize/initialCircleSizeScale, 0, Math.PI * 2);
             ctx.fillStyle = "white";
             ctx.fill();
             ctx.strokeStyle = 'black'; 
@@ -488,9 +505,9 @@
         ctx.beginPath();
         ctx.lineWidth = 2;
         if(clickedNodeId==id) {//クリックされた時
-            ctx.arc(x, y, 2*circleSize*changeCircleSize/50, 0, Math.PI * 2);
+            ctx.arc(x, y, 2*circleSize*changeCircleSize/initialCircleSizeScale, 0, Math.PI * 2);
         }else { //クリックされてないとき
-            ctx.arc(x, y, circleSize*changeCircleSize/50, 0, Math.PI * 2);
+            ctx.arc(x, y, circleSize*changeCircleSize/initialCircleSizeScale, 0, Math.PI * 2);
         }
         ctx.fillStyle = colorName[c];
         ctx.fill();
@@ -526,10 +543,10 @@
         drawLine(xi, yi, xj, yj);
 
         //ノードの半径を計算
-        let nodeR = circleSize*changeCircleSize/50;
+        let nodeR = circleSize*changeCircleSize/initialCircleSizeScale;
         if(selectedNodes.includes(j)){
-            if(clickedNodeId==j) nodeR *= 2*(7/5);
-            else nodeR *= (7/5);
+            if(clickedNodeId==j) nodeR *= 2*(selectedCircleScale);
+            else nodeR *= (selectedCircleScale);
         }else{
             if(clickedNodeId==j) nodeR *= 2;
         }
@@ -737,7 +754,7 @@
                 let gDstX =  Nodes[i].x-GravityX;
                 let gDstY =  Nodes[i].y-GravityY;
                 let gDst = Math.sqrt(gDstX*gDstX + gDstY*gDstY);
-                let gF = -1 * (GRAVITY * changeGravitySize/50) * (gDst*gDst);
+                let gF = -1 * (GRAVITY * changeGravitySize/initialGravitySizeScale) * (gDst*gDst);
                 fx += gF * gDstX/gDst;
                 fy += gF * gDstY/gDst;
 
@@ -756,7 +773,7 @@
         const x = event.clientX - rect.left;
         const y = event.clientY - rect.top;
         //ノード座標の変更 図形の合同条件を思い出せ
-        if(event.wheelDelta>0 && cntZoomNum<=7){
+        if(event.wheelDelta>0 && cntZoomNum<=zoomUpper){
             cntZoomNum++;
             for(let i=0;i<Nodes.length;i++){
                 Nodes[i].x += (Nodes[i].x - x) * zoomScale;
@@ -765,7 +782,7 @@
             circleSize += circleSize*zoomScale;
             COULOMB = COULOMB * ((1+zoomScale)**2);
             GRAVITY = GRAVITY /  (1+zoomScale)**2;
-        }else if(event.wheelDelta<0 && cntZoomNum>=-10){
+        }else if(event.wheelDelta<0 && cntZoomNum>=zoomLower){
             cntZoomNum--;
             for(let i=0;i<Nodes.length;i++){
                 Nodes[i].x -= (Nodes[i].x - x) * zoomScale / (1+zoomScale);
@@ -1209,10 +1226,6 @@
                     }
                 }
                 if(!isTriangle){//三角形でないならば
-
-                    
-
-
                     minEdges = removeEdgesById(minEdges, minNodes[i].id);//削除処理
                     minNodes.splice(getNodeIndex(minNodes, minNodes[i].id), 1);//削除処理
                     minEdges.push({start:nodeId1, end:nodeId2});//エッジ追加
@@ -1269,6 +1282,7 @@
     let originNodes = [];
     let originEdges = [];
     function doCheckCactusGraph(){
+        if(Nodes.length<=0) return null;
         doMinimizeOnIsCactusGraph();
         
         originNodes = getNodesCopy(Nodes);
