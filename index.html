@@ -782,6 +782,8 @@
                 Nodes[i].x += (Nodes[i].x - x) * zoomScale;
                 Nodes[i].y += (Nodes[i].y - y) * zoomScale;
             }
+            GravityX += (GravityX - x) * zoomScale;
+            GravityY += (GravityY - y) * zoomScale;
             circleSize += circleSize*zoomScale;
             COULOMB = COULOMB * ((1+zoomScale)**2);
             GRAVITY = GRAVITY /  (1+zoomScale)**2;
@@ -791,6 +793,8 @@
                 Nodes[i].x -= (Nodes[i].x - x) * zoomScale / (1+zoomScale);
                 Nodes[i].y -= (Nodes[i].y - y) * zoomScale / (1+zoomScale);
             }
+            GravityX -= (GravityX - x) * zoomScale / (1+zoomScale);
+            GravityY -= (GravityY - y) * zoomScale / (1+zoomScale);
             circleSize -= circleSize * zoomScale / (1+zoomScale);
             COULOMB = COULOMB * ((1 / (1+zoomScale))**2);
             GRAVITY = GRAVITY /  (1 / (1+zoomScale))**2;
