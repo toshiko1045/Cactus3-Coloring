@@ -80,6 +80,7 @@
                 <input type="button" value="change x" onclick="changeX()">
                 <br>
                 <input type="button" value="check cactus graph" onclick="doCheckCactusGraph()">
+                <input type="button" value="reset coordinate" onclick="resetCoordinate()">
                 <br>
                 <!-- <input type="button" value="test check cactus graph" onclick="doTestCheckCactusGraph()"> -->
                 <!-- <input type="button" value="test check uncactus graph" onclick="doTestCheckUnCactusGraph()"> -->
@@ -177,6 +178,8 @@
     let initialGravitySizeScale = 50;
     let zoomUpper = 7;
     let zoomLower = -10;
+    let totalMouseMoveX = 0;
+    let totalMouseMoveY = 0;
 
     let visitTime = {};
 
@@ -993,9 +996,11 @@
                 Node.y = y;
             }else if(clickedNodeId===-1){
                 for(let i=0;i<Nodes.length;i++){
-                    Nodes[i].x += x-MouceX;
+                    Nodes[i].x += x-MouceX; 
                     Nodes[i].y += y-MouceY;
                 }
+                totalMouseMoveX += x-MouceX;
+                totalMouseMoveY += y-MouceY;
                 GravityX += x-MouceX;
                 GravityY += y-MouceY;
                 MouceX = x;
@@ -1004,6 +1009,18 @@
             redrawCanvas();
         }
         
+    }
+
+    function resetCoordinate(){
+        Nodes.forEach((node,i)=>{
+            Nodes[i].x -= totalMouseMoveX;
+            Nodes[i].y -= totalMouseMoveY;
+        })
+        GravityX -= totalMouseMoveX;
+        GravityY -= totalMouseMoveY;
+        totalMouseMoveX = 0;
+        totalMouseMoveY = 0;
+        redrawCanvas();
     }
 
 
@@ -1375,7 +1392,7 @@
         });
         ordNum = 1;
         //ord, low, dfsTreeを作成
-        makeOrdAndLowDfs(nodes, nodes[0], nodes[0]);
+        makeOrdLowDfsTree(nodes, nodes[0], nodes[0]);
         isVisited = [];
         nodes.forEach(node=>{isVisited.push(false)});
        
@@ -1399,7 +1416,7 @@
         })
     }
 
-    function makeOrdAndLowDfs(nodes, visitingNode, beforeNode){  //ord, low, dfsTreeを作成
+    function makeOrdLowDfsTree(nodes, visitingNode, beforeNode){  //ord, low, dfsTreeを作成
         isVisited[getNodeIndex(nodes, visitingNode.id)] = true;
         // 訪問時操作開始
         let visitingIndex = getNodeIndex(nodes, visitingNode.id);
@@ -1412,7 +1429,7 @@
             let nextIndex = getNodeIndex(nodes, node.id);
             if(!isVisited[nextIndex] && nextIndex!==-1) {
                 dfsTree.forEach((t,i)=>{if(t.parent==visitingNode.id)dfsTree[i].children.push(node.id);});
-                dfs(nodes, node, visitingNode);
+                makeOrdLowDfs(nodes, node, visitingNode);
                 if(lowArray[visitingIndex] > lowArray[nextIndex]) lowArray[visitingIndex] = lowArray[nextIndex];
             } else { //行こうとした先が訪問済だった時
                 if(lowArray[visitingIndex]>ordArray[nextIndex]) lowArray[visitingIndex] = ordArray[nextIndex];
@@ -1579,7 +1596,7 @@
             dfsTree.push({parent:node.id, children:[]});
         });
         let beginNode = nodes[0]; //dfsを開始するノード
-        dfs(nodes, beginNode, beginNode); //dfs木, low, ordを作成 再帰です
+        makeOrdLowDfs(nodes, beginNode, beginNode); //dfs木, low, ordを作成 再帰です
         // 今から, dfs木を辿って関節点を探します. dfsTree上で全ての関節点を削除します.
         isVisited.forEach((n,i)=>{ //今からまた使うので初期化
             isVisited[i] = false;
@@ -1696,7 +1713,7 @@
         return deletedDfsTree;
     }
 
-    function dfs(nodes, visitingNode, beforeNode){
+    function makeOrdLowDfs(nodes, visitingNode, beforeNode){
         isVisited[getNodeIndex(nodes, visitingNode.id)] = true;
         // 訪問時操作開始
         let visitingIndex = getNodeIndex(nodes, visitingNode.id);
@@ -1709,7 +1726,7 @@
             let nextIndex = getNodeIndex(nodes, node.id);
             if(!isVisited[nextIndex] && nextIndex!==-1) {
                 dfsTree.forEach((t,i)=>{if(t.parent==visitingNode.id)dfsTree[i].children.push(node.id);});
-                dfs(nodes, node, visitingNode);
+                makeOrdLowDfs(nodes, node, visitingNode);
                 if(lowArray[visitingIndex] > lowArray[nextIndex]) lowArray[visitingIndex] = lowArray[nextIndex];
             } else { //行こうとした先が訪問済だった時
                 if(lowArray[visitingIndex]>ordArray[nextIndex]) lowArray[visitingIndex] = ordArray[nextIndex];
