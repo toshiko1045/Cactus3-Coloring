@@ -751,8 +751,7 @@
                     }
                 })
 
-                // if(isNaN(fx)) fx = 0;
-                // if(isNaN(fy)) fy = 0;
+                
 
                 let gDstX =  Nodes[i].x-GravityX;
                 let gDstY =  Nodes[i].y-GravityY;
@@ -760,6 +759,9 @@
                 let gF = -1 * (GRAVITY * changeGravitySize/initialGravitySizeScale) * (gDst*gDst);
                 fx += gF * gDstX/gDst;
                 fy += gF * gDstY/gDst;
+
+                // if(isNaN(fx)) fx = -100;
+                // if(isNaN(fy)) fy = -100;
 
                 Nodes[i].vx = (Nodes[i].vx + fx) * FRICTION; //摩擦
                 Nodes[i].vy = (Nodes[i].vy + fy) * FRICTION; //摩擦
