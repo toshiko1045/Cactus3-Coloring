@@ -89,14 +89,11 @@
                 <input type="button" value="step coloring graph" onclick="stepColoring()">
                 <input type="button" value="skip coloring graph" onclick="doColoring()">
                 <br>
-                show directed edge : <input type="checkbox" id="isDirectedEdge">
-                <br>
-                show status : <input type="checkbox" id="isShowStatus">
-                <br>
-                make balanced graph : <input type="checkbox" id="isMakeBalancedGraph">
+                <input type="button" value="show directed edge" onclick="switchShowDirectedEdge()">
                 
-                <!-- <input type="button" value="show status" onclick="showStatus()"> -->
-                <!-- <input type="button" value="make balanced graph" onclick="switchMakeBlancedGraph()"> -->
+                <input type="button" value="show status" onclick="showStatus()">
+                
+                <input type="button" value="make balanced graph" onclick="switchMakeBlancedGraph()">
                 <br>
                 save graph name : <input type="text" id="graphName">
                 <input type="button" value="save" onclick="saveGraph()">
@@ -180,6 +177,7 @@
     let zoomLower = -10;
     let totalMouseMoveX = 0;
     let totalMouseMoveY = 0;
+    let isShowDirectedEdges = false;
 
     let visitTime = {};
 
@@ -561,7 +559,7 @@
         // edgeEndX = xj;
         // edgeEndY = yj;
 
-        let arrowLen = nodeR;
+        let arrowLen = circleSize;
         let theta = Math.atan2(yj-yi, xj-xi) //始点を原点に移動して, 角度を計算
         let rad = 30 * Math.PI/180 //矢印先の傾き(PI/2とかPI/4とか)
         let arrowEnd1X = edgeEndX - arrowLen * Math.cos(theta + rad);
@@ -618,7 +616,7 @@
         //         }
         //     })
         // }
-        if(document.getElementById("isDirectedEdge").checked){
+        if(isShowDirectedEdges){
             Edges.forEach(Edge => {
                 drawDirectedEdge(Edge.start, Edge.end);
             });
@@ -711,6 +709,11 @@
 
     function setCoulombSize(){
         changeCoulombSize = document.getElementById("coulombSize").value;
+        redrawCanvas();
+    }
+
+    function switchShowDirectedEdge(){
+        isShowDirectedEdges = !isShowDirectedEdges;
         redrawCanvas();
     }
 
@@ -1045,12 +1048,6 @@
     setGravitySizeSlider.addEventListener("input", setGravitySize);
     let setCoulombSizeSlider = document.getElementById("coulombSize");
     setCoulombSizeSlider.addEventListener("input", setCoulombSize);
-    let showStatusCheckbox = document.getElementById("isShowStatus");
-    showStatusCheckbox.addEventListener("change", showStatus);
-    let makeBalancedGraphCheckbox = document.getElementById("isMakeBalancedGraph");
-    makeBalancedGraphCheckbox.addEventListener("change", switchMakeBlancedGraph);
-    let showDirectedEdgeCheckbox = document.getElementById("isDirectedEdge");
-    showDirectedEdgeCheckbox.addEventListener("change", redrawCanvas);
 
     // make graph
     function redrawRandomCactusGraph(){
@@ -1090,7 +1087,7 @@
         Nodes.push(beginNode);//ノードとして登録
         for(let i=0;i<graphSize;i++){
             let nowNode = Nodes[Math.floor(Math.random()*Nodes.length)];//ノード選択
-            makeRandomGraph(nowNode, graphComplex);
+            makeRandomGraph(nowNode, graphComplex); //選択したノードから閉路か木をはやす
         }
     }
 
@@ -1147,21 +1144,18 @@
         }
     }
 
-    function makeRandomTree(rootNode, pathLength){//rootNodeを根, ノード数c
-        let treeNodes = [];
-        treeNodes.push(rootNode);
-        let cnt = 0;
-        let randomPathLength = Math.floor(Math.random()*(pathLength-2)+2);
+    function makeRandomTree(rootNode, pathLength){//rootNodeを根, ノード数pathLength
+        let treeNodes = []; //木を格納する配列
+        treeNodes.push(rootNode); //根を木に登録
+        let cnt = 0; //現在のノード数
+        let randomPathLength = Math.floor(Math.random()*(pathLength-2)+2); 
         do{
             let parentNode = treeNodes[Math.floor(Math.random()*treeNodes.length)]; //親取得
             let childNodes = [];
             let childrenSize = Math.floor(Math.random()*randomPathLength); //子の数決定
             for(let i=0;i<childrenSize;i++){
                 let childNode = getRandomNode();//子生成
-                // childNode.x = parentNode.x + Math.floor(Math.random()*circleSize*8)-circleSize*4;
-                // childNode.y = parentNode.y + Math.floor(Math.random()*circleSize*8)-circleSize*4;
                 Nodes.push(childNode);//子をノードとして登録
-                // Edges.push({start: parentNode.id, end: childNode.id});//エッジ作成
                 addEdge(parentNode.id, childNode.id);
                 treeNodes.push(childNode);
                 cnt += 1;
