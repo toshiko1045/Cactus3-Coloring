@@ -1,4 +1,4 @@
-# URL
+# 実行場所
 - https://toshiko1045.github.io/Cactus3-Coloring/
 
 # 制作目的
